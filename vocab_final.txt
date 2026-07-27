@@ -1,0 +1,339 @@
+591	musk
+538	vanilla
+528	patchouli
+508	sandalwood
+502	bergamot
+462	amber
+447	cedar
+374	jasmine
+364	rose
+338	vetiver
+239	tonka bean
+214	leather
+205	incense
+195	lemon
+191	cardamom
+171	saffron
+163	labdanum
+157	ylang ylang
+153	oakmoss
+152	cinnamon
+149	violet
+149	benzoin
+148	iris
+147	pink pepper
+139	nutmeg
+135	lavender
+134	oud
+127	geranium
+122	mandarin
+121	ambergris
+119	white musk
+115	orange blossom
+114	grapefruit
+113	black pepper
+113	clove
+111	guaiac wood
+108	neroli
+105	tobacco
+98	tuberose
+92	myrrh
+92	coriander
+85	ginger
+80	frankincense
+75	orange
+74	moss
+71	lily of the valley
+71	orris
+71	honey
+67	heliotrope
+65	galbanum
+65	osmanthus
+64	cumin
+62	petitgrain
+61	magnolia
+58	peach
+58	styrax
+57	castoreum
+57	pepper
+55	cistus
+54	clary sage
+52	jasmine sambac
+51	cypress
+51	lime
+48	olibanum
+48	juniper
+48	mint
+46	agarwood
+46	aldehydes
+45	basil
+44	elemi
+44	cashmeran
+43	gardenia
+42	carnation
+41	blackcurrant
+40	almond
+40	ambroxan
+40	raspberry
+40	rosemary
+40	coconut
+39	ambrette
+38	civet
+38	apple
+38	peony
+37	bulgarian rose
+37	plum
+37	bitter orange
+36	orange flower
+36	davana
+35	opoponax
+35	thyme
+34	sage
+34	freesia
+33	haitian vetiver
+32	pear
+31	tangerine
+31	coffee
+31	caramel
+30	fig
+30	violet leaf
+29	rose absolute
+29	pineapple
+29	rum
+29	papyrus
+28	birch
+28	turkish rose
+27	cypriol
+27	cassis
+26	cashmere wood
+26	lychee
+25	atlas cedar
+24	yuzu
+24	mimosa
+24	angelica
+23	artemisia
+23	immortelle
+22	beeswax
+22	rose de mai
+22	cocoa
+22	carrot seed
+22	green tea
+22	lily
+21	narcissus
+21	hedione
+20	rosewood
+20	black tea
+19	fir balsam
+19	eucalyptus
+19	apricot
+19	suede
+19	amberwood
+19	indonesian patchouli
+19	pine
+19	muguet
+19	blood orange
+19	ambrette seed
+19	tolu balsam
+19	orchid
+18	sweet orange
+18	grey amber
+18	frangipani
+17	pink peppercorn
+17	peru balsam
+17	star anise
+17	mandarin orange
+17	egyptian jasmine
+17	madagascar vanilla
+17	hyacinth
+17	rhubarb
+16	hinoki
+16	honeysuckle
+16	strawberry
+16	coumarin
+16	amyris
+16	oak
+16	orris root
+15	dark chocolate
+15	violet leaves
+15	cade
+15	anise
+15	chamomile
+15	juniper berry
+15	green leaves
+14	cognac
+14	champaca
+14	sichuan pepper
+14	birch tar
+14	licorice
+14	orris butter
+14	cyclamen
+14	pink grapefruit
+14	mysore sandalwood
+13	australian sandalwood
+13	mango
+13	tarragon
+13	chocolate
+12	blackberry
+12	jasmine absolute
+12	pimento
+12	mate
+12	green mandarin
+12	dry woods
+12	juniper berries
+12	camphor
+12	white cedar
+11	caraway
+11	coconut milk
+11	laurel
+11	cistus labdanum
+11	spearmint
+11	tea
+11	italian bergamot
+11	black amber
+11	black currant
+11	white amber
+11	sugar
+11	lilac
+11	mahogany
+11	whiskey
+11	sicilian lemon
+11	blackcurrant bud
+10	ash
+10	damask rose
+10	tobacco leaf
+10	peppermint
+10	calabrian bergamot
+10	white rose
+10	white peach
+10	milk
+10	cacao
+10	green apple
+10	indian sandalwood
+10	wormwood
+10	marigold
+10	bay leaf
+10	myrtle
+10	angelica root
+10	florentine iris
+9	costus
+9	pomelo
+9	iso e super
+9	virginia cedar
+9	blueberry
+9	seaweed
+9	everlasting flower
+9	clementine
+9	hazelnut
+9	indian tuberose
+9	nagarmotha
+9	linden blossom
+8	turmeric
+8	tonka bean absolute
+8	rose otto
+8	red pepper
+8	white pepper
+8	hawthorn
+8	bitter almond
+8	date
+8	sea salt
+8	ambrox
+7	shiso
+7	mushroom
+7	absinthe
+7	melon
+7	mastic
+7	osmanthus absolute
+7	tahitian vanilla
+7	rice powder
+7	red berries
+7	tiare
+7	tobacco flower
+7	bourbon vanilla
+7	tuberose absolute
+7	pomegranate
+7	fir
+7	oregano
+7	balsam
+7	rose essence
+7	sicilian bergamot
+7	bigarade
+7	vanilla absolute
+7	calone
+7	labdanum absolute
+7	tolu
+7	broom
+6	lemongrass
+6	prune
+6	watermelon
+6	italian lemon
+6	patchouli from indonesia
+6	blonde woods
+6	pink berries
+6	rose oxide
+6	red apple
+6	coffee absolute
+6	banana
+6	cedrat
+6	bourbon geranium
+6	tahitian gardenia
+6	wisteria
+6	orange blossom absolute
+6	teak
+6	lotus
+6	fig leaf
+6	citron
+6	plumeria
+6	pine needles
+6	jasmine tea
+6	enigmatic musks
+6	ebony
+6	gin
+6	pepperwood
+6	white honey
+6	clover
+6	taif rose
+6	sicilian mandarin
+6	geranium bourbon
+5	cambodian oud
+5	tunisian neroli
+5	moroccan neroli
+5	rose oil
+5	angelica seed
+5	cherry blossom
+5	akigalawood
+5	oppoponax
+5	sugar cane
+5	cabreuva
+5	peach blossom
+5	cherry
+5	pittosporum
+5	gurjum
+5	atlas cedarwood
+5	moroccan rose
+5	fennel
+5	whipped cream
+5	praline
+5	quince
+5	water lily
+5	white lily
+5	calamus
+5	indian patchouli
+5	celery seed
+5	grape
+5	cetalox
+5	red currant
+5	oakwood
+5	tree moss
+5	javanol
+5	siamese benzoin
+5	palo santo
+5	jasmin de grasse
+5	moroccan cedarwood
+5	rose petals
+5	fern
+5	red mandarin
+5	java vetiver
+5	tulip
+5	verbena
+5	benzoin resin
+5	tunisian patchouli

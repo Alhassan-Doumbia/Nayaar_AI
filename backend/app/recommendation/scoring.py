@@ -39,10 +39,7 @@ FAMILLES_CONNUES = {
 }
 
 # Traductions acceptées en entrée -> clé interne utilisée dans les colonnes
-# de la Knowledge Base (winter_score, day_score, profil...). Toute valeur
-# absente de ces tables déclenche une erreur explicite (voir _traduire) au
-# lieu de faire silencieusement échouer le scoring sur TOUS les parfums
-# (un f"{cle}_score" introuvable renverrait 0.0 partout sans prévenir).
+# de la Knowledge Base (winter_score, day_score, profil...).
 TRADUCTION_SAISON = {
     "winter": "winter", "hiver": "winter",
     "spring": "spring", "printemps": "spring",
@@ -63,12 +60,9 @@ TRADUCTION_PROFIL = {
 def _traduire(valeur, table_traduction, nom_champ):
     """
     Traduit une valeur de préférence (FR ou EN, insensible à la casse) vers
-    la clé interne utilisée par la Knowledge Base. Lève une erreur explicite
-    si la valeur n'est reconnue dans aucune langue, plutôt que de laisser le
-    scoring continuer avec une clé invalide qui produirait un score neutre
-    de 0.0 sur tous les parfums sans que personne ne s'en aperçoive.
+    la clé interne utilisée par la Knowledge Base.
     """
-    traduction = table_traduction.get(valeur.strip().lower())
+    traduction = table_traduction.get(str(valeur).strip().lower())
     if traduction is None:
         raise ValueError(
             f"Valeur inconnue pour {nom_champ!r} : {valeur!r}. "
@@ -77,10 +71,7 @@ def _traduire(valeur, table_traduction, nom_champ):
     return traduction
 
 
-# Compatibilité entre le profil demandé et le profil du parfum. Un parfum
-# unisexe convient partiellement à une demande genrée (et inversement), mais
-# un parfum genré ne convient pas à une demande de l'autre genre. Explicite
-# plutôt qu'un enchaînement de if/else difficile à auditer.
+# Compatibilité entre le profil demandé et le profil du parfum.
 COMPATIBILITE_PROFIL = {
     ("masculine", "masculine"): 1.0,
     ("masculine", "unisex"): 0.5,
@@ -99,37 +90,18 @@ COMPATIBILITE_PROFIL = {
 # ---------------------------------------------------------------------------
 def normaliser_notes(notes_brutes, mapping_normalisation):
     """
-    Normalise une liste de notes brutes en un ensemble de notes canoniques :
-    mise en minuscules (le vocabulaire et les notes stockées sont tous en
-    minuscules, mais rien ne garantit que les notes_aimees envoyées par une
-    couche amont le soient — "Cinnamon" doit matcher "cinnamon") puis mapping
-    via le même dictionnaire que les notebooks 03a/03b (notes_vocabulary.json
-    -> "mapping_normalisation"), pour que "musks" et "musk" soient reconnues
-    comme identiques.
+    Normalise une liste de notes brutes en un ensemble de notes canoniques.
     """
     resultat = set()
     for note in notes_brutes:
-        note_minuscule = note.strip().lower()
+        note_minuscule = str(note).strip().lower()
         resultat.add(mapping_normalisation.get(note_minuscule, note_minuscule))
     return resultat
 
 
 def score_similarite_notes(notes_aimees, notes_parfum, mapping_normalisation):
     """
-    Taux de rappel (recall) des notes aimées par l'utilisateur dans les notes
-    du parfum : taille de l'intersection / taille de l'ensemble des notes
-    aimées, après normalisation des deux côtés.
-
-    Volontairement PAS un indice de Jaccard (intersection / union) : avec
-    Jaccard, un parfum riche en notes (ex. 15 notes) qui contient pourtant
-    EXACTEMENT les 2 notes demandées seraient pénalisé (score 2/15 = 0.13)
-    par rapport à un parfum minimaliste. Avec le rappel, un parfum qui
-    contient toutes les notes demandées obtient 1.0, peu importe le nombre
-    d'autres notes qu'il contient en plus — c'est bien "l'utilisateur a-t-il
-    trouvé ce qu'il voulait ?" qu'on mesure, pas "les deux listes se
-    ressemblent-elles globalement ?".
-
-    Retourne 0.0 si l'utilisateur n'a demandé aucune note (rien à mesurer).
+    Taux de rappel (recall) des notes aimées par l'utilisateur.
     """
     ensemble_aimees = normaliser_notes(notes_aimees, mapping_normalisation)
     if not ensemble_aimees:
@@ -142,40 +114,27 @@ def score_similarite_notes(notes_aimees, notes_parfum, mapping_normalisation):
 
 def score_famille(famille_preferee, parfum):
     """
-    1.0 si la famille DOMINANTE du parfum correspond à la famille préférée.
-    0.5 si elle ne domine pas mais est quand même présente parmi les notes du
-    parfum (colonne notes_categories, notebook 03b) : un parfum "floral" qui
-    contient aussi des notes boisées ne doit pas être aussi mal noté qu'un
-    parfum entièrement floral pour quelqu'un qui cherche du boisé — sans
-    quoi la composante famille est trop binaire pour des parfums composites.
-    0.0 si la famille préférée n'apparaît nulle part dans le parfum.
-    Si l'utilisateur n'a pas exprimé de préférence, la composante est neutre
-    (1.0) : elle ne doit pas pénaliser un critère non demandé.
+    1.0 si la famille DOMINANTE correspond à la famille préférée.
+    0.5 si présent dans notes_categories.
+    0.0 sinon.
     """
     if not famille_preferee:
         return 1.0
-    if famille_preferee not in FAMILLES_CONNUES:
+    famille_norm = str(famille_preferee).strip().lower()
+    if famille_norm not in FAMILLES_CONNUES:
         raise ValueError(
             f"Famille inconnue : {famille_preferee!r}. Valeurs acceptées : {sorted(FAMILLES_CONNUES)}"
         )
-    if parfum.get("famille") == famille_preferee:
+    if parfum.get("famille") == famille_norm:
         return 1.0
-    if famille_preferee in parfum.get("notes_categories", []):
+    if famille_norm in parfum.get("notes_categories", []):
         return 0.5
     return 0.0
 
 
 def score_saison(saison_demandee, parfum):
     """
-    Réutilise directement le score saisonnier déjà calculé sur le parfum
-    (winter_score, spring_score, summer_score, autumn_score - notebook 03b) :
-    c'est littéralement "à quel point ce parfum convient à cette saison".
-    Accepte le français ou l'anglais (voir TRADUCTION_SAISON) et lève une
-    erreur si la valeur n'est reconnue dans aucun des deux : un mot non
-    traduit (ex. "été" envoyé tel quel par une couche de parsing amont)
-    produirait sinon une clé "été_score" absente du parfum, donc un score de
-    0.0 silencieux pour absolument tous les parfums.
-    Neutre (1.0) si aucune saison n'est demandée.
+    Réutilise directement le score saisonnier (winter_score, etc.).
     """
     if not saison_demandee:
         return 1.0
@@ -184,7 +143,7 @@ def score_saison(saison_demandee, parfum):
 
 
 def score_moment(moment_demande, parfum):
-    """Même logique que score_saison (avec les mêmes garde-fous), sur day_score / night_score."""
+    """Même logique que score_saison sur day_score / night_score."""
     if not moment_demande:
         return 1.0
     moment_normalise = _traduire(moment_demande, TRADUCTION_MOMENT, "moment")
@@ -193,15 +152,17 @@ def score_moment(moment_demande, parfum):
 
 def score_profil(profil_demande, parfum):
     """
-    Compatibilité entre le profil demandé et celui du parfum, via la table
-    COMPATIBILITE_PROFIL (un parfum unisexe convient partiellement à une
-    demande genrée). Accepte le français ou l'anglais. Neutre (1.0) si aucun
-    profil n'est demandé.
+    Compatibilité entre le profil demandé et celui du parfum.
     """
     if not profil_demande:
         return 1.0
     profil_normalise = _traduire(profil_demande, TRADUCTION_PROFIL, "profil")
-    profil_parfum = parfum.get("profil")
+    profil_parfum = str(parfum.get("profil", "")).strip().lower()
+    
+    # Sécurité au cas où la valeur dans le CSV est en FR (ex: "unisexe")
+    if profil_parfum in TRADUCTION_PROFIL:
+        profil_parfum = TRADUCTION_PROFIL[profil_parfum]
+
     return COMPATIBILITE_PROFIL.get((profil_normalise, profil_parfum), 0.0)
 
 
@@ -211,14 +172,11 @@ def score_profil(profil_demande, parfum):
 def calculer_score(preferences, parfum, mapping_normalisation, poids=POIDS_SCORING):
     """
     Calcule le score final d'un parfum pour des préférences données, ainsi
-    que le détail (déjà pondéré) de chaque composante. C'est ce détail qui
-    permet d'expliquer n'importe quelle recommandation.
+    que le détail (déjà pondéré) de chaque composante.
 
-    preferences : dict avec les clés notes_aimees, famille_preferee, saison,
-                  moment, profil (toutes optionnelles sauf notes_aimees).
-    parfum : dict représentant une ligne de la Knowledge Base (doit contenir
-             au moins notes_list, notes_categories, famille, *_score, profil,
-             Name, Brand).
+    Comporte un filtre de cohérence (pénalité multiplicative quadratique) si la saison 
+    demandée est en opposition avec le parfum (< 0.50), évitant qu'un
+    parfum d'hiver lourd ne sorte en été simplement grâce aux notes.
     """
     detail_brut = {
         "notes": score_similarite_notes(
@@ -230,13 +188,19 @@ def calculer_score(preferences, parfum, mapping_normalisation, poids=POIDS_SCORI
         "profil": score_profil(preferences.get("profil"), parfum),
     }
 
-    # Le détail exposé est déjà pondéré : la somme des valeurs de "details"
-    # est exactement égale à score_final, ce qui rend l'explication directe
-    # ("ce parfum a eu 0.28 sur 0.35 possibles grâce à ses notes").
+    # --- FILTRE ANTI-CONTRESENS SAISONNIER (Ajustement du seuil & Pente Quadratique) ---
+    penalite_saison = 1.0
+    if preferences.get("saison") and detail_brut["saison"] < 0.50:
+        # Pente quadratique : un score saison de 0.42 subit un facteur de (0.42/0.50)^2 = ~0.7056
+        penalite_saison = (detail_brut["saison"] / 0.50) ** 2
+
+    # Application de la pénalité au dictionnaire de détails pour maintenir
+    # une cohérence parfaite entre la somme des détails et score_final.
     detail_pondere = {
-        composante: round(valeur * poids[composante], 4)
+        composante: round(valeur * poids[composante] * penalite_saison, 4)
         for composante, valeur in detail_brut.items()
     }
+    
     score_final = round(sum(detail_pondere.values()), 4)
 
     return {
@@ -250,14 +214,13 @@ def calculer_score(preferences, parfum, mapping_normalisation, poids=POIDS_SCORI
 def recommander(preferences, parfums, mapping_normalisation, n=5, poids=POIDS_SCORING):
     """
     Fonction principale du moteur : calcule le score de chaque parfum
-    (en excluant les marques de preferences["marques_exclues"]) et retourne
-    les n meilleurs, triés par score décroissant.
+    et retourne les n meilleurs, triés par score décroissant.
     """
-    marques_exclues = {m.lower() for m in preferences.get("marques_exclues", [])}
+    marques_exclues = {str(m).strip().lower() for m in preferences.get("marques_exclues", [])}
 
     parfums_eligibles = [
         parfum for parfum in parfums
-        if parfum.get("Brand", "").lower() not in marques_exclues
+        if str(parfum.get("Brand", "")).strip().lower() not in marques_exclues
     ]
 
     resultats = [
@@ -274,16 +237,13 @@ def recommander(preferences, parfums, mapping_normalisation, n=5, poids=POIDS_SC
 # ---------------------------------------------------------------------------
 def charger_knowledge_base(chemin_csv):
     """
-    Charge la Nayaar Knowledge Base en liste de dicts. notes_list et
-    notes_categories sont désérialisées (stockées en JSON dans le CSV,
-    notebook 03b) : notes_list pour score_similarite_notes, notes_categories
-    pour le crédit partiel de score_famille.
+    Charge la Nayaar Knowledge Base en liste de dicts.
     """
     with open(chemin_csv, encoding="utf-8") as f:
         parfums = list(csv.DictReader(f))
     for parfum in parfums:
-        parfum["notes_list"] = json.loads(parfum["notes_list"])
-        parfum["notes_categories"] = json.loads(parfum["notes_categories"])
+        parfum["notes_list"] = json.loads(parfum.get("notes_list", "[]"))
+        parfum["notes_categories"] = json.loads(parfum.get("notes_categories", "[]"))
     return parfums
 
 
@@ -305,14 +265,31 @@ if __name__ == "__main__":
     parfums = charger_knowledge_base(CHEMIN_KNOWLEDGE_BASE)
     mapping_normalisation = charger_mapping_normalisation(CHEMIN_VOCABULAIRE)
 
-    preferences_exemple = {
-        "notes_aimees": ["Cinnamon", "amber", "musk","vanilla","Whiskey"],
-        "famille_preferee": "boise",
-        "saison": "Summer",
-        "moment": "night",
-        "profil": "Feminine",
-        "marques_exclues": [],
-    }
+    # preferences_exemple = {
+    #     "notes_aimees": ["Cinnamon", "amber", "musk", "vanilla", "Whiskey"],
+    #     "famille_preferee": "boise",
+    #     "saison": "Summer",
+    #     "moment": "night",
+    #     "profil": "Feminine",
+    #     "marques_exclues": [],
+    # }
+
+#     preferences_exemple = { #Frais été test 1 
+#     "notes_aimees": ["Lemon", "Bergamot", "Sea Salt", "Mint", "Cedar"],
+#     "famille_preferee": "agrumes",
+#     "saison": "Summer",
+#     "moment": "day",
+#     "profil": "Unisex",
+#     "marques_exclues": [],
+# }
+    preferences_exemple = { #test 2
+    "notes_aimees": ["Vanilla", "Tonka Bean", "Amber", "Cinnamon", "Rum"],
+    "famille_preferee": "gourmand",
+    "saison": "Winter",
+    "moment": "night",
+    "profil": "Feminine",
+    "marques_exclues": [],
+}
 
     top_5 = recommander(preferences_exemple, parfums, mapping_normalisation, n=5)
 

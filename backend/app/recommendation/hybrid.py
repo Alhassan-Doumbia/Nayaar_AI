@@ -107,19 +107,32 @@ _parfums_par_cle = None
 _mapping_normalisation = None
 
 
+def _chemin_configurable(nom_variable_env, chemin_par_defaut):
+    """Variable d'environnement si définie (voir backend/.env.example), sinon le chemin par défaut."""
+    valeur = os.environ.get(nom_variable_env)
+    if not valeur:
+        return chemin_par_defaut
+    racine_projet = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    return valeur if os.path.isabs(valeur) else os.path.join(racine_projet, valeur)
+
+
 def _charger_ressources():
     """Charge la Knowledge Base (indexée par (nom, marque)) et le mapping de notes, une seule fois."""
     global _parfums_par_cle, _mapping_normalisation
 
     if _parfums_par_cle is None:
         racine_projet = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-        chemin_knowledge_base = os.path.join(racine_projet, "data", "processed", "nayaar_knowledge_base.csv")
+        chemin_knowledge_base = _chemin_configurable(
+            "NAYAAR_KNOWLEDGE_BASE_PATH", os.path.join(racine_projet, "data", "processed", "nayaar_knowledge_base.csv")
+        )
         parfums = scoring.charger_knowledge_base(chemin_knowledge_base)
         _parfums_par_cle = {(p["Name"], p["Brand"]): p for p in parfums}
 
     if _mapping_normalisation is None:
         racine_projet = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-        chemin_vocabulaire = os.path.join(racine_projet, "data", "processed", "notes_vocabulary.json")
+        chemin_vocabulaire = _chemin_configurable(
+            "NAYAAR_VOCABULARY_PATH", os.path.join(racine_projet, "data", "processed", "notes_vocabulary.json")
+        )
         _mapping_normalisation = scoring.charger_mapping_normalisation(chemin_vocabulaire)
 
     return _parfums_par_cle, _mapping_normalisation

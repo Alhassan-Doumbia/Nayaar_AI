@@ -20,14 +20,19 @@ import os
 import sys
 
 from anthropic import Anthropic
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
 
 from system_prompt import SYSTEM_PROMPT
 
 
-# Charge automatiquement le fichier .env trouvé dans l'arborescence (si présent)
-# afin que `os.environ` contienne les clés API définies par l'utilisateur.
-load_dotenv(find_dotenv())
+# Chemin explicite vers backend/.env (PAS load_dotenv(find_dotenv()), dont la
+# détection automatique par introspection de pile échoue silencieusement
+# sous certains lanceurs — voir main.py pour le détail). Ce module peut être
+# exécuté seul (son bloc __main__) ou importé par l'API (main.py, qui charge
+# déjà le même .env) : rappeler load_dotenv ici ne fait rien de mal
+# (n'écrase pas des variables déjà définies) et garde rag.py autonome.
+_CHEMIN_ENV = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
+load_dotenv(dotenv_path=_CHEMIN_ENV)
 
 # Le moteur hybride vit dans backend/app/recommendation/, un dossier frère
 # (pas un package Python formel dans ce projet — cohérent avec le style des
@@ -103,15 +108,25 @@ def _filtrer_resultats_pertinents(resultats, seuil=SEUIL_PERTINENCE_MINIMUM):
     return [r for r in resultats if r["score_hybride"] >= seuil]
 
 
-def repondre(question_utilisateur, n_resultats=NOMBRE_RESULTATS, client=None):
+def repondre(question_utilisateur, n_resultats=NOMBRE_RESULTATS, client=None, historique=None):
     """
     Fonction principale du pipeline RAG.
 
     1. Appelle le moteur hybride pour obtenir les n_resultats meilleurs
-       parfums (recherche sémantique + re-classement par règles).
+       parfums (recherche sémantique + re-classement par règles) — la
+       recherche repart toujours de question_utilisateur seul, l'historique
+       ne sert qu'à donner du contexte conversationnel à Claude, pas à
+       relancer une recherche sur toute la conversation.
     2. Filtre les résultats trop peu pertinents.
     3. Construit le contexte structuré.
-    4. Envoie question + contexte à Claude, avec le system prompt strict.
+    4. Envoie l'historique (s'il y en a) + la question + le contexte à
+       Claude, avec le system prompt strict.
+
+    historique : liste optionnelle de tours précédents
+                 [{"role": "user"|"assistant", "content": "..."}], dans
+                 l'ordre chronologique. Ce module ne stocke aucune session :
+                 c'est à l'appelant (API) de renvoyer l'historique à chaque
+                 appel.
 
     Retourne {"reponse": str, "resultats_bruts": list} : la reformulation
     naturelle de Claude, ET les données brutes du moteur (pour que le
@@ -126,18 +141,21 @@ def repondre(question_utilisateur, n_resultats=NOMBRE_RESULTATS, client=None):
     if client is None:
         client = _obtenir_client_anthropic()
 
+    messages = list(historique) if historique else []
+    messages.append({
+        "role": "user",
+        "content": (
+            f"Question du client : {question_utilisateur}\n\n"
+            f"CONTEXTE (résultats du moteur de recommandation Nayaar, "
+            f"du plus au moins pertinent) :\n\n{contexte}"
+        ),
+    })
+
     message = client.messages.create(
         model=MODELE_CLAUDE,
         max_tokens=1024,
         system=SYSTEM_PROMPT,
-        messages=[{
-            "role": "user",
-            "content": (
-                f"Question du client : {question_utilisateur}\n\n"
-                f"CONTEXTE (résultats du moteur de recommandation Nayaar, "
-                f"du plus au moins pertinent) :\n\n{contexte}"
-            ),
-        }],
+        messages=messages,
     )
 
     return {

@@ -18,8 +18,27 @@ import faiss
 from sentence_transformers import SentenceTransformer
 
 RACINE_PROJET = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-CHEMIN_INDEX_FAISS = os.path.join(RACINE_PROJET, "data", "processed", "nayaar_index.faiss")
-CHEMIN_MAPPING = os.path.join(RACINE_PROJET, "data", "processed", "nayaar_index_mapping.json")
+
+
+def _chemin_configurable(nom_variable_env, chemin_par_defaut):
+    """
+    Résout un chemin de fichier de données : variable d'environnement si
+    définie (utile pour l'API, voir backend/.env.example), sinon le chemin
+    par défaut du projet. Un chemin relatif fourni via l'env est résolu
+    depuis la racine du projet.
+    """
+    valeur = os.environ.get(nom_variable_env)
+    if not valeur:
+        return chemin_par_defaut
+    return valeur if os.path.isabs(valeur) else os.path.join(RACINE_PROJET, valeur)
+
+
+CHEMIN_INDEX_FAISS = _chemin_configurable(
+    "NAYAAR_FAISS_INDEX_PATH", os.path.join(RACINE_PROJET, "data", "processed", "nayaar_index.faiss")
+)
+CHEMIN_MAPPING = _chemin_configurable(
+    "NAYAAR_FAISS_MAPPING_PATH", os.path.join(RACINE_PROJET, "data", "processed", "nayaar_index_mapping.json")
+)
 
 NOM_MODELE = "all-MiniLM-L6-v2"  # doit rester identique au modèle utilisé pour construire l'index
 

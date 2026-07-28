@@ -8,30 +8,78 @@ import { PerfumeCard } from "@/components/PerfumeCard";
 import { PerfumeGallery } from "@/components/PerfumeGallery";
 import { SuggestionChips } from "@/components/SuggestionChips";
 import { ChatInput } from "@/components/ChatInput";
-import { CONVERSATION_EXEMPLE, SUGGESTIONS_EXEMPLE } from "@/lib/mock-data";
+import { useChat } from "@/hooks/useChat";
 
-/**
- * Page de démonstration du chat Nayaar : assemble tous les composants avec
- * des données factices (CONVERSATION_EXEMPLE), sans aucun appel API ni
- * gestion d'état réelle — périmètre volontairement limité à la structure et
- * au style (le branchement à l'API FastAPI vient dans un prochain prompt).
- */
+// Chips de suggestion rapide. Mode consultation autonome : chaque chip
+// déclenche une NOUVELLE recherche indépendante (texte pré-rempli, sans
+// référence à l'échange précédent) — jamais un suivi de la réponse
+// précédente. C'est pour ça que "Pourquoi ce choix ?" a disparu : le
+// backend inclut désormais systématiquement l'explication dans sa
+// première réponse (voir backend/app/chat/system_prompt.py), il n'y a
+// plus de question de relance à poser. "layering" reste désactivé : hors
+// MVP (voir Docs/MVP_SCOPE.md — Layering Engine reporté).
+const SUGGESTIONS = [
+  {
+    id: "fraicheur",
+    label: "Une alternative plus fraîche",
+    texte: "Un parfum frais et léger",
+    disabled: false,
+  },
+  {
+    id: "layering",
+    label: "Suggérer un layering",
+    disabled: true,
+    tooltip: "Bientôt disponible",
+  },
+];
+
 export default function Home() {
+  const { messages, isLoading, sendMessage, marquerMessageTermine } = useChat();
+
+  // Les chips restent visuellement identiques ; on ajoute juste le blocage
+  // pendant qu'une réponse est en cours (pas de nouvel envoi qui chevauche).
+  const suggestionsAffichees = SUGGESTIONS.map((s) => ({
+    ...s,
+    disabled: s.disabled || isLoading,
+  }));
+
+  const selectionnerSuggestion = (id) => {
+    const suggestion = SUGGESTIONS.find((s) => s.id === id);
+    if (suggestion?.texte) sendMessage(suggestion.texte);
+  };
+
   return (
     <div className="flex h-screen flex-col bg-nayaar-cream">
       <Header />
 
       <main className="flex-1 overflow-hidden">
         <ChatContainer>
-          {CONVERSATION_EXEMPLE.map((message) => (
-            <div key={message.id} className="flex flex-col gap-4">
-              <MessageBubble role={message.role} contenu={message.contenu} />
+          {messages.length === 0 && (
+            <p className="mx-auto mt-12 max-w-sm text-center font-serif text-lg text-nayaar-ink/60">
+              Décrivez le parfum que vous recherchez, l&apos;occasion, ou
+              l&apos;émotion que vous souhaitez porter.
+            </p>
+          )}
 
-              {message.parfumPrincipal && (
-                <PerfumeCard parfum={message.parfumPrincipal} />
+          {messages.map((message) => (
+            <div key={message.id} className="flex flex-col gap-4">
+              <MessageBubble
+                role={message.role}
+                contenu={message.contenu}
+                statut={message.statut}
+                onStreamComplete={() => marquerMessageTermine(message.id)}
+              />
+
+              {/* Le premier parfum se démarque toujours en grande carte
+                  détaillée ; s'il y en a d'autres, ils suivent en petites
+                  vignettes défilantes (alternatives), jamais l'inverse. */}
+              {message.perfumes?.length > 0 && (
+                <PerfumeCard parfum={message.perfumes[0]} />
               )}
 
-              {message.galerie && <PerfumeGallery parfums={message.galerie} />}
+              {message.perfumes?.length > 1 && (
+                <PerfumeGallery parfums={message.perfumes.slice(1)} />
+              )}
             </div>
           ))}
         </ChatContainer>
@@ -39,12 +87,10 @@ export default function Home() {
 
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 px-4 pb-4">
         <SuggestionChips
-          suggestions={SUGGESTIONS_EXEMPLE}
-          onSelect={(id) => console.log("suggestion sélectionnée :", id)}
+          suggestions={suggestionsAffichees}
+          onSelect={selectionnerSuggestion}
         />
-        <ChatInput
-          onSend={(texte) => console.log("message envoyé (factice) :", texte)}
-        />
+        <ChatInput onSend={sendMessage} disabled={isLoading} />
       </div>
 
       <Footer />

@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import { PerfumeImage } from "@/components/PerfumeImage";
+import { CopyButton } from "@/components/CopyButton";
+import { normaliserScoreAffichage } from "@/lib/score";
 
 /**
  * Carte verticale détaillée pour LA recommandation principale d'un tour de
@@ -12,7 +14,9 @@ import { PerfumeImage } from "@/components/PerfumeImage";
  * @param {object} parfum - { nom, marque, image_url, notes_principales, score_compatibilite, concentration }
  */
 export function PerfumeCard({ parfum }) {
-  const pourcentage = Math.round(parfum.score_compatibilite * 100);
+  // Le score brut du moteur (souvent 0.4-0.6) est reformulé en pourcentage
+  // crédible pour l'affichage — voir lib/score.js pour le détail.
+  const pourcentage = normaliserScoreAffichage(parfum.score_compatibilite);
 
   return (
     <motion.article
@@ -29,14 +33,22 @@ export function PerfumeCard({ parfum }) {
       />
 
       <div className="flex flex-col gap-3 p-5">
-        <div>
-          <p className="label-caps text-nayaar-gold">{parfum.marque}</p>
-          <h3 className="mt-1 font-serif text-xl text-nayaar-ink">
-            {parfum.nom}
-          </h3>
-          {parfum.concentration && (
-            <p className="text-xs text-nayaar-label">{parfum.concentration}</p>
-          )}
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <p className="label-caps text-nayaar-gold">{parfum.marque}</p>
+            <h3 className="mt-1 font-serif text-xl text-nayaar-ink">
+              {parfum.nom}
+            </h3>
+            {parfum.concentration && (
+              <p className="text-xs text-nayaar-label">{parfum.concentration}</p>
+            )}
+          </div>
+
+          {/* Copie "Nom — Marque" : plus utile qu'un nom seul pour une recherche externe */}
+          <CopyButton
+            texte={`${parfum.nom} — ${parfum.marque}`}
+            className="mt-1 h-7 w-7 shrink-0"
+          />
         </div>
 
         {parfum.notes_principales?.length > 0 && (

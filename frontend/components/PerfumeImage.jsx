@@ -19,8 +19,10 @@ import Image from "next/image";
  * @param {string} nom - nom du parfum, utilisé comme alt et comme contenu du fallback
  * @param {string} className - classes de TAILLE du conteneur (h-*, w-*), plus arrondi/bordure éventuels
  * @param {string} [sizes] - attribut `sizes` de next/image (vignette légère vs carte détaillée)
+ * @param {boolean} [priority] - précharge l'image (désactive le lazy-loading) ; utilisé pour les
+ *   vignettes de PerfumeGallery, affichées ensemble, pour un défilement fluide dès l'apparition
  */
-export function PerfumeImage({ src, nom, className = "", sizes = "320px" }) {
+export function PerfumeImage({ src, nom, className = "", sizes = "320px", priority = false }) {
   // On bascule sur le fallback si l'URL est vide dès le départ, ou si
   // next/image signale une erreur de chargement (onError) une fois monté.
   const [enErreur, setEnErreur] = useState(false);
@@ -40,7 +42,8 @@ export function PerfumeImage({ src, nom, className = "", sizes = "320px" }) {
           alt={nom}
           fill
           sizes={sizes}
-          loading="lazy"
+          loading={priority ? undefined : "lazy"}
+          priority={priority}
           onError={() => setEnErreur(true)}
           className="object-cover"
         />

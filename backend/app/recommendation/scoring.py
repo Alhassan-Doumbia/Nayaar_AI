@@ -238,12 +238,45 @@ def recommander(preferences, parfums, mapping_normalisation, n=5, poids=POIDS_SC
 def charger_knowledge_base(chemin_csv):
     """
     Charge la Nayaar Knowledge Base en liste de dicts.
+
+    Le séparateur (',' ou ';') est détecté sur la ligne d'en-tête plutôt que
+    supposé fixe : un export notebook en locale FR (Excel) utilise souvent
+    ';', un export standard pandas utilise ',' — le loader doit fonctionner
+    dans les deux cas sans que ça casse silencieusement (KeyError sur "Name").
+
+    Les lignes dont notes_list/notes_categories ne sont pas du JSON valide
+    sont écartées (comptées, pas silencieuses) : ça arrive si le fichier a
+    été converti d'un séparateur à l'autre par un remplacement de texte brut
+    qui n'a pas re-échappé les champs contenant déjà ce caractère (une
+    description avec une virgule non protégée, par exemple), ce qui décale
+    les colonnes de la ligne. Le bon correctif est de régénérer le CSV
+    depuis le notebook 03b — ceci n'est qu'un filet de sécurité pour que
+    l'API reste utilisable en attendant.
     """
     with open(chemin_csv, encoding="utf-8") as f:
-        parfums = list(csv.DictReader(f))
-    for parfum in parfums:
-        parfum["notes_list"] = json.loads(parfum.get("notes_list", "[]"))
-        parfum["notes_categories"] = json.loads(parfum.get("notes_categories", "[]"))
+        entete = f.readline()
+        delimiteur = ";" if entete.count(";") > entete.count(",") else ","
+        f.seek(0)
+        lignes_brutes = list(csv.DictReader(f, delimiter=delimiteur))
+
+    parfums = []
+    nb_lignes_ecartees = 0
+    for ligne in lignes_brutes:
+        try:
+            ligne["notes_list"] = json.loads(ligne.get("notes_list", "[]"))
+            ligne["notes_categories"] = json.loads(ligne.get("notes_categories", "[]"))
+        except json.JSONDecodeError:
+            nb_lignes_ecartees += 1
+            continue
+        parfums.append(ligne)
+
+    if nb_lignes_ecartees:
+        print(
+            f"[scoring.charger_knowledge_base] ATTENTION : {nb_lignes_ecartees} ligne(s) "
+            f"écartée(s) car illisibles (colonnes décalées) dans {chemin_csv}. "
+            f"Régénérer ce fichier depuis le notebook 03b est recommandé."
+        )
+
     return parfums
 
 

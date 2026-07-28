@@ -30,11 +30,10 @@ import semantic_search
 # Configuration — ajustable ici sans toucher au reste du code.
 # ---------------------------------------------------------------------------
 POIDS_HYBRIDE = {
-    "semantique": 0.4,
-    "regles": 0.6,
+    "semantique": 0.5,
+    "regles": 0.5,
 }
 assert abs(sum(POIDS_HYBRIDE.values()) - 1.0) < 1e-9, "La somme des poids doit être égale à 1.0"
-
 TAILLE_POOL_PAR_DEFAUT = 50  # nombre de candidats récupérés par la recherche sémantique avant re-classement
 
 # Mots-clés (français + anglais) permettant de retrouver une famille
@@ -59,26 +58,28 @@ FAMILLE_MOTS_CLES = {
 def extraire_preferences_du_texte(texte):
     """
     Extrait des préférences structurées (famille, saison, moment, profil)
-    d'une requête en langage naturel, par simple recherche de mots-clés —
-    pas d'appel GPT à ce stade, uniquement des règles.
-
-    Réutilise les tables de traduction déjà définies dans scoring.py
-    (TRADUCTION_SAISON, TRADUCTION_MOMENT, TRADUCTION_PROFIL) pour ne pas
-    dupliquer le vocabulaire FR/EN à deux endroits différents.
-
-    Une préférence non trouvée dans le texte est absente du dict retourné
-    (pas de valeur par défaut devinée) : le moteur de scoring la traite
-    alors comme neutre. notes_aimees n'est pas extrait ici (pas de liste de
-    notes fiable à isoler d'une phrase libre par simple mot-clé) — la
-    recherche sémantique s'en charge via le sens global de la requête.
+    d'une requête en langage naturel, par simple recherche de mots-clés.
+    Optimisé pour capturer plusieurs familles si elles sont mentionnées
+    (ex: 'oriental boisé') sans casser la structure de retour.
     """
     texte_normalise = texte.lower()
     preferences = {}
 
+    # Recherche de TOUTES les familles présentes dans le texte
+    familles_detectees = []
     for famille, mots_cles in FAMILLE_MOTS_CLES.items():
         if any(mot in texte_normalise for mot in mots_cles):
-            preferences["famille_preferee"] = famille
-            break  # premier match trouvé, pas de tentative de résoudre les cas ambigus
+            familles_detectees.append(famille)
+
+    if familles_detectees:
+        # S'il y a un combo comme "oriental" (oriental_ambre) et "boisé", 
+        # on peut prioriser l'oriental ou l'ambre si présent, sinon on prend la première.
+        # Ici, si "oriental_ambre" est présent parmi les détectés, on le choisit en priorité 
+        # car il qualifie souvent l'ambiance globale, ou on garde le premier.
+        if "oriental_ambre" in familles_detectees and "boise" in familles_detectees:
+            preferences["famille_preferee"] = "oriental_ambre" # ou "boise" selon votre préférence, ou gérez un fallback
+        else:
+            preferences["famille_preferee"] = familles_detectees[0]
 
     for mot_cle, saison in scoring.TRADUCTION_SAISON.items():
         if mot_cle in texte_normalise:
@@ -96,7 +97,6 @@ def extraire_preferences_du_texte(texte):
             break
 
     return preferences
-
 
 # ---------------------------------------------------------------------------
 # Chargement des ressources partagées (Knowledge Base + mapping de notes),

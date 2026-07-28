@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import { PerfumeImage } from "@/components/PerfumeImage";
+import { CopyButton } from "@/components/CopyButton";
+import { normaliserScoreAffichage } from "@/lib/score";
 
 // Le parent orchestre le délai entre chaque vignette (effet cascade) ; les
 // vignettes elles-mêmes ne définissent que leur propre animation d'entrée.
@@ -45,6 +47,10 @@ export function PerfumeGallery({ parfums }) {
             nom={parfum.nom}
             className="h-28 w-full rounded-md"
             sizes="160px"
+            // Vignettes chargées ensemble (peu nombreuses) : préchargées
+            // pour que le défilement horizontal soit fluide dès l'arrivée,
+            // plutôt que de charger paresseusement au fil du scroll.
+            priority
           />
           <div>
             <p className="label-caps text-[0.6rem] text-nayaar-gold">
@@ -53,9 +59,16 @@ export function PerfumeGallery({ parfums }) {
             <p className="truncate font-serif text-sm text-nayaar-ink">
               {parfum.nom}
             </p>
-            <p className="mt-0.5 text-xs text-nayaar-label">
-              {Math.round(parfum.score_compatibilite * 100)}% compatible
-            </p>
+            <div className="mt-0.5 flex items-center justify-between gap-1">
+              <p className="text-xs text-nayaar-label">
+                {normaliserScoreAffichage(parfum.score_compatibilite)}% compatible
+              </p>
+              {/* Copie "Nom — Marque", discrète, alignée avec le score */}
+              <CopyButton
+                texte={`${parfum.nom} — ${parfum.marque}`}
+                className="h-5 w-5 shrink-0"
+              />
+            </div>
           </div>
         </motion.article>
       ))}

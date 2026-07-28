@@ -17,12 +17,16 @@ def discuter(requete: ChatRequest, request: Request):
     Pipeline complet : recherche hybride -> contexte -> Claude (rag.py).
     Claude ne fait que reformuler ; les parfums retournés viennent
     exclusivement du moteur, jamais du texte généré par Claude.
+
+    Mode consultation autonome : chaque appel est traité indépendamment,
+    sans historique (voir rag.py). session_id est uniquement renvoyé tel
+    quel pour que le frontend puisse regrouper des échanges côté affichage
+    si besoin ; il n'influence pas la réponse générée.
     """
     session_id = requete.session_id or str(uuid.uuid4())
-    historique = [{"role": tour.role, "content": tour.content} for tour in requete.history] or None
 
     try:
-        resultat = rag.repondre(requete.message, historique=historique)
+        resultat = rag.repondre(requete.message)
     except RuntimeError as erreur:
         # ex. ANTHROPIC_API_KEY absente (voir backend/.env.example)
         raise HTTPException(status_code=500, detail=str(erreur)) from erreur

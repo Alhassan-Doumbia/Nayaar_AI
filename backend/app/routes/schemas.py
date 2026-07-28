@@ -32,16 +32,11 @@ class ParfumRecommande(BaseModel):
 
 
 # --- /api/chat -----------------------------------------------------------
-class TourConversation(BaseModel):
-    """Un tour de l'historique de conversation, tel que renvoyé par le frontend à chaque appel (pas de session stockée côté serveur)."""
-    role: Literal["user", "assistant"]
-    content: str
-
-
+# Mode consultation autonome : chaque appel est indépendant, pas
+# d'historique dans la requête (voir backend/app/chat/rag.py).
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, description="Question ou demande du client, en langage naturel.")
-    session_id: Optional[str] = Field(None, description="Identifiant de session côté client ; généré si absent.")
-    history: list[TourConversation] = Field(default_factory=list)
+    session_id: Optional[str] = Field(None, description="Identifiant de session côté client ; généré si absent, non utilisé pour la génération de la réponse.")
 
 
 class ChatResponse(BaseModel):

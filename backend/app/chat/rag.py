@@ -11,6 +11,17 @@ Pipeline :
            system_prompt.py
         -> réponse naturelle + données brutes du moteur
 
+Mode de fonctionnement : consultation autonome, un tour unique. Chaque
+appel est indépendant — aucun historique n'est conservé ni transmis à
+Claude. Une demande produit une réponse complète et justifiée en
+elle-même (recommandation + explication dès la première réponse) ; il n'y
+a pas de suivi conversationnel. C'est un choix de conception assumé, pas
+une limitation technique : un message de suivi type "pourquoi ce choix ?"
+serait traité comme une nouvelle recherche indépendante par le moteur de
+recommandation, qui ne trouverait rien de pertinent pour ce texte pris
+seul — d'où l'absence volontaire de ce mode d'usage plutôt qu'un support
+partiel et trompeur.
+
 Conforme à CLAUDE.md : Claude ne décide jamais. Il ne reçoit que le
 résultat déjà calculé par le moteur hybride et le reformule. S'il n'y a
 aucun résultat pertinent, il le dit honnêtement (voir system_prompt.py,
@@ -108,25 +119,19 @@ def _filtrer_resultats_pertinents(resultats, seuil=SEUIL_PERTINENCE_MINIMUM):
     return [r for r in resultats if r["score_hybride"] >= seuil]
 
 
-def repondre(question_utilisateur, n_resultats=NOMBRE_RESULTATS, client=None, historique=None):
+def repondre(question_utilisateur, n_resultats=NOMBRE_RESULTATS, client=None):
     """
-    Fonction principale du pipeline RAG.
+    Fonction principale du pipeline RAG. Chaque appel est indépendant : pas
+    d'historique en entrée, pas de session conservée — voir la note "Mode
+    de fonctionnement" en tête de fichier.
 
     1. Appelle le moteur hybride pour obtenir les n_resultats meilleurs
-       parfums (recherche sémantique + re-classement par règles) — la
-       recherche repart toujours de question_utilisateur seul, l'historique
-       ne sert qu'à donner du contexte conversationnel à Claude, pas à
-       relancer une recherche sur toute la conversation.
+       parfums (recherche sémantique + re-classement par règles).
     2. Filtre les résultats trop peu pertinents.
     3. Construit le contexte structuré.
-    4. Envoie l'historique (s'il y en a) + la question + le contexte à
-       Claude, avec le system prompt strict.
-
-    historique : liste optionnelle de tours précédents
-                 [{"role": "user"|"assistant", "content": "..."}], dans
-                 l'ordre chronologique. Ce module ne stocke aucune session :
-                 c'est à l'appelant (API) de renvoyer l'historique à chaque
-                 appel.
+    4. Envoie la question + le contexte à Claude, avec le system prompt
+       strict (qui impose une réponse complète et justifiée dès ce tour
+       unique, voir system_prompt.py).
 
     Retourne {"reponse": str, "resultats_bruts": list} : la reformulation
     naturelle de Claude, ET les données brutes du moteur (pour que le
@@ -141,21 +146,18 @@ def repondre(question_utilisateur, n_resultats=NOMBRE_RESULTATS, client=None, hi
     if client is None:
         client = _obtenir_client_anthropic()
 
-    messages = list(historique) if historique else []
-    messages.append({
-        "role": "user",
-        "content": (
-            f"Question du client : {question_utilisateur}\n\n"
-            f"CONTEXTE (résultats du moteur de recommandation Nayaar, "
-            f"du plus au moins pertinent) :\n\n{contexte}"
-        ),
-    })
-
     message = client.messages.create(
         model=MODELE_CLAUDE,
         max_tokens=1024,
         system=SYSTEM_PROMPT,
-        messages=messages,
+        messages=[{
+            "role": "user",
+            "content": (
+                f"Question du client : {question_utilisateur}\n\n"
+                f"CONTEXTE (résultats du moteur de recommandation Nayaar, "
+                f"du plus au moins pertinent) :\n\n{contexte}"
+            ),
+        }],
     )
 
     return {

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Layers } from "lucide-react";
 import { PerfumeImage } from "@/components/PerfumeImage";
 import { CopyButton } from "@/components/CopyButton";
 import { normaliserScoreAffichage } from "@/lib/score";
@@ -11,9 +12,10 @@ import { normaliserScoreAffichage } from "@/lib/score";
  * notes principales (puces), barre de score de compatibilité animée.
  * 100% maison (pas de composant Prompt Kit sous-jacent).
  *
- * @param {object} parfum - { nom, marque, image_url, notes_principales, score_compatibilite, concentration }
+ * @param {object} parfum - { id, nom, marque, image_url, notes_principales, score_compatibilite, concentration }
+ * @param {(perfumeId: number) => void} [onOpenLayering] - ouvre le panneau de layering pour ce parfum ; le bouton n'apparaît que si fourni (et que parfum.id est connu)
  */
-export function PerfumeCard({ parfum }) {
+export function PerfumeCard({ parfum, onOpenLayering }) {
   // Le score brut du moteur (souvent 0.4-0.6) est reformulé en pourcentage
   // crédible pour l'affichage — voir lib/score.js pour le détail.
   const pourcentage = normaliserScoreAffichage(parfum.score_compatibilite);
@@ -79,6 +81,20 @@ export function PerfumeCard({ parfum }) {
             />
           </div>
         </div>
+
+        {/* Entrée vers le panneau de layering dédié (remplace l'ancien chip
+            désactivé "Suggérer un layering" : le layering est maintenant
+            actif, contextuel à CE parfum précis). */}
+        {onOpenLayering && parfum.id != null && (
+          <button
+            type="button"
+            onClick={() => onOpenLayering(parfum.id)}
+            className="mt-1 flex items-center justify-center gap-2 rounded-full border border-nayaar-gold-soft px-4 py-2 text-xs font-medium tracking-wide text-nayaar-ink uppercase transition-colors hover:border-nayaar-gold hover:bg-nayaar-cream-deep"
+          >
+            <Layers className="h-3.5 w-3.5 text-nayaar-gold" />
+            Proposer un layering
+          </button>
+        )}
       </div>
     </motion.article>
   );

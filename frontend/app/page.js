@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ChatContainer } from "@/components/ChatContainer";
@@ -8,16 +9,18 @@ import { PerfumeCard } from "@/components/PerfumeCard";
 import { PerfumeGallery } from "@/components/PerfumeGallery";
 import { SuggestionChips } from "@/components/SuggestionChips";
 import { ChatInput } from "@/components/ChatInput";
+import { LayeringPanel } from "@/components/LayeringPanel";
 import { useChat } from "@/hooks/useChat";
 
 // Chips de suggestion rapide. Mode consultation autonome : chaque chip
 // déclenche une NOUVELLE recherche indépendante (texte pré-rempli, sans
 // référence à l'échange précédent) — jamais un suivi de la réponse
-// précédente. C'est pour ça que "Pourquoi ce choix ?" a disparu : le
-// backend inclut désormais systématiquement l'explication dans sa
-// première réponse (voir backend/app/chat/system_prompt.py), il n'y a
-// plus de question de relance à poser. "layering" reste désactivé : hors
-// MVP (voir Docs/MVP_SCOPE.md — Layering Engine reporté).
+// précédente. "Pourquoi ce choix ?" a disparu : le backend inclut
+// désormais systématiquement l'explication dans sa première réponse (voir
+// backend/app/chat/system_prompt.py). Le chip "Suggérer un layering" a
+// disparu lui aussi : le layering est maintenant actif, mais contextuel à
+// UN parfum précis (bouton dédié sur PerfumeCard), pas une action globale
+// du fil de discussion.
 const SUGGESTIONS = [
   {
     id: "fraicheur",
@@ -25,19 +28,16 @@ const SUGGESTIONS = [
     texte: "Un parfum frais et léger",
     disabled: false,
   },
-  {
-    id: "layering",
-    label: "Suggérer un layering",
-    disabled: true,
-    tooltip: "Bientôt disponible",
-  },
 ];
 
 export default function Home() {
   const { messages, isLoading, sendMessage, marquerMessageTermine } = useChat();
 
-  // Les chips restent visuellement identiques ; on ajoute juste le blocage
-  // pendant qu'une réponse est en cours (pas de nouvel envoi qui chevauche).
+  // Id du parfum pour lequel le panneau de layering est ouvert (null =
+  // fermé). État local à la page, complètement indépendant de useChat :
+  // ouvrir/fermer le panneau ne touche jamais au fil de conversation.
+  const [layeringPerfumeId, setLayeringPerfumeId] = useState(null);
+
   const suggestionsAffichees = SUGGESTIONS.map((s) => ({
     ...s,
     disabled: s.disabled || isLoading,
@@ -74,7 +74,10 @@ export default function Home() {
                   détaillée ; s'il y en a d'autres, ils suivent en petites
                   vignettes défilantes (alternatives), jamais l'inverse. */}
               {message.perfumes?.length > 0 && (
-                <PerfumeCard parfum={message.perfumes[0]} />
+                <PerfumeCard
+                  parfum={message.perfumes[0]}
+                  onOpenLayering={setLayeringPerfumeId}
+                />
               )}
 
               {message.perfumes?.length > 1 && (
@@ -94,6 +97,12 @@ export default function Home() {
       </div>
 
       <Footer />
+
+      {/* Couche par-dessus tout le reste ; ne modifie jamais l'état du chat derrière. */}
+      <LayeringPanel
+        perfumeId={layeringPerfumeId}
+        onClose={() => setLayeringPerfumeId(null)}
+      />
     </div>
   );
 }

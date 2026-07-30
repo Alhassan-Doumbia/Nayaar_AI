@@ -7,7 +7,13 @@ de données externe : toutes les données vivent en fichiers
 notes_vocabulary.json), chargés une seule fois au démarrage (lifespan)
 puis gardés en mémoire pour toutes les requêtes.
 
-Lancer en local : uvicorn main:app --reload --app-dir backend/app
+Lancer en local (accessible depuis cet ordinateur uniquement) :
+    uvicorn main:app --reload --app-dir backend/app
+
+Lancer en incluant l'accès depuis le réseau local (ex. téléphone sur le
+même Wi-Fi, voir CORS_ORIGINS dans backend/.env) — --host 0.0.0.0 fait
+écouter l'API sur toutes les interfaces réseau, pas seulement 127.0.0.1 :
+    uvicorn main:app --reload --host 0.0.0.0 --app-dir backend/app
 """
 import os
 import sys
@@ -36,9 +42,10 @@ for _sous_dossier in ("recommendation", "chat"):
     sys.path.insert(0, os.path.join(_DOSSIER_APP, _sous_dossier))
 sys.path.insert(0, _DOSSIER_APP)  # pour que "routes" soit importable comme package
 
+import layering  # noqa: E402
 import scoring  # noqa: E402
 import semantic_search  # noqa: E402
-from routes import chat, health, perfumes, recommend  # noqa: E402
+from routes import chat, health, layering as layering_route, perfumes, recommend  # noqa: E402
 
 RACINE_PROJET = os.path.abspath(os.path.join(_DOSSIER_APP, "..", ".."))
 
@@ -80,6 +87,7 @@ async def lifespan(app: FastAPI):
     app.state.parfums = scoring.charger_knowledge_base(CHEMIN_KNOWLEDGE_BASE)
     app.state.mapping_normalisation = scoring.charger_mapping_normalisation(CHEMIN_VOCABULAIRE)
     semantic_search._charger_ressources()  # charge le modèle + l'index FAISS une seule fois
+    layering._charger_parfums()  # charge (une seule fois) la Knowledge Base propre au moteur de layering
 
     print(
         f"[Nayaar API] prêt : {len(app.state.parfums)} parfums, "
@@ -121,3 +129,4 @@ app.include_router(health.router)
 app.include_router(perfumes.router)
 app.include_router(recommend.router)
 app.include_router(chat.router)
+app.include_router(layering_route.router)

@@ -30,8 +30,9 @@ def recommander_par_preferences(preferences: PreferencesRequest, request: Reques
 
     lookup = construire_lookup_parfums(parfums)
     parfums_recommandes = [
-        construire_parfum_recommande(resultat, lookup[(resultat["nom"], resultat["marque"])])
+        construire_parfum_recommande(resultat, *lookup[(resultat["nom"], resultat["marque"])])
         for resultat in resultats
+        if (resultat["nom"], resultat["marque"]) in lookup
     ]
 
     return RecommendResponse(perfumes=parfums_recommandes)

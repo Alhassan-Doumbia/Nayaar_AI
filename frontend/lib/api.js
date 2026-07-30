@@ -1,36 +1,26 @@
-// Appel à l'API FastAPI Nayaar (POST /api/chat).
+// Appels à l'API FastAPI Nayaar (POST /api/chat, POST /api/layering).
 
 const URL_API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-// L'appel Claude prend quelques secondes (recherche hybride + génération) :
+// Les appels Claude prennent quelques secondes (recherche + génération) :
 // on laisse une marge large avant de considérer que ça n'aboutira pas.
 const DELAI_TIMEOUT_MS = 30000;
 
 /**
- * Envoie un message au chat Nayaar et retourne { reply, perfumes, session_id }.
- * Lève une Error avec un message destiné à être affiché tel quel dans le
- * fil de conversation en cas d'échec (réseau, timeout, ou erreur API).
- *
- * Mode consultation autonome : aucun historique n'est envoyé — chaque appel
- * est une demande indépendante, le backend ne le gère plus (voir
- * backend/app/chat/rag.py).
- *
- * @param {string} message
- * @param {string|null} sessionId
+ * Fonction interne partagée : POST JSON vers l'API avec timeout, et lève
+ * une Error avec un message déjà prêt à afficher tel quel dans l'interface
+ * en cas d'échec (réseau, timeout, ou erreur renvoyée par l'API).
  */
-export async function envoyerMessageChat(message, sessionId) {
+async function _poster(chemin, corps) {
   const controleur = new AbortController();
   const idTimeout = setTimeout(() => controleur.abort(), DELAI_TIMEOUT_MS);
 
   let reponse;
   try {
-    reponse = await fetch(`${URL_API}/api/chat`, {
+    reponse = await fetch(`${URL_API}${chemin}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message,
-        session_id: sessionId,
-      }),
+      body: JSON.stringify(corps),
       signal: controleur.signal,
     });
   } catch (erreur) {
@@ -52,8 +42,8 @@ export async function envoyerMessageChat(message, sessionId) {
     // planter si le corps n'est pas du JSON exploitable.
     let detail = "";
     try {
-      const corps = await reponse.json();
-      detail = corps?.detail ?? "";
+      const corpsErreur = await reponse.json();
+      detail = corpsErreur?.detail ?? "";
     } catch {
       // corps non JSON : on garde le message générique ci-dessous
     }
@@ -63,4 +53,30 @@ export async function envoyerMessageChat(message, sessionId) {
   }
 
   return reponse.json();
+}
+
+/**
+ * Envoie un message au chat Nayaar et retourne { reply, perfumes, session_id }.
+ *
+ * Mode consultation autonome : aucun historique n'est envoyé — chaque appel
+ * est une demande indépendante, le backend ne le gère plus (voir
+ * backend/app/chat/rag.py).
+ *
+ * @param {string} message
+ * @param {string|null} sessionId
+ */
+export function envoyerMessageChat(message, sessionId) {
+  return _poster("/api/chat", { message, session_id: sessionId });
+}
+
+/**
+ * Demande un guide de superposition (layering) pour un parfum donné et
+ * retourne { reply, parfum_reference, perfumes }. Mode consultation
+ * autonome également : aucun historique, chaque appel est indépendant.
+ *
+ * @param {number} perfumeId - id du parfum de référence (position dans la Knowledge Base)
+ * @param {number} [n] - nombre de propositions souhaitées
+ */
+export function proposerLayering(perfumeId, n = 3) {
+  return _poster("/api/layering", { perfume_id: perfumeId, n });
 }

@@ -22,6 +22,7 @@ class ContributionsScore(BaseModel):
 
 class ParfumRecommande(BaseModel):
     """Un parfum recommandé, avec assez d'information pour l'afficher et l'expliquer côté frontend."""
+    id: int = Field(..., description="Position dans la Knowledge Base, même convention que GET /api/perfumes/{id} et POST /api/layering.")
     nom: str
     marque: str
     image_url: str
@@ -88,6 +89,47 @@ class PerfumeDetail(BaseModel):
     concentration: str
     scores_saison: ScoresSaison
     scores_moment: ScoresMoment
+
+
+# --- /api/layering ------------------------------------------------------------
+# Mode consultation autonome, comme /api/chat : pas d'historique.
+class ContributionsLayering(BaseModel):
+    """Détail des composantes du score de layering (layering.py), déjà pondérées."""
+    categories: float
+    complementarite: float
+    saison_moment: float
+    profil: float
+
+
+class ParfumLayering(BaseModel):
+    """Un parfum proposé en superposition, avec son rôle suggéré dans l'application."""
+    nom: str
+    marque: str
+    image_url: str
+    score_compatibilite: float = Field(..., description="Score de compatibilité de layering, entre 0 et 1.")
+    details: ContributionsLayering
+    role: Literal["base", "dessus"]
+
+
+class ParfumReferenceLayering(BaseModel):
+    """Le parfum de départ pour lequel on cherche des associations, pour l'affichage côté panneau."""
+    id: int
+    nom: str
+    marque: str
+    image_url: str
+    famille: str
+    notes_principales: list[str]
+
+
+class LayeringRequest(BaseModel):
+    perfume_id: int = Field(..., ge=0, description="Id du parfum de référence (position dans la Knowledge Base, comme GET /api/perfumes/{id}).")
+    n: int = Field(3, ge=1, le=10, description="Nombre de propositions de layering souhaitées.")
+
+
+class LayeringResponse(BaseModel):
+    reply: str
+    parfum_reference: ParfumReferenceLayering
+    perfumes: list[ParfumLayering]
 
 
 # --- /api/health -------------------------------------------------------------

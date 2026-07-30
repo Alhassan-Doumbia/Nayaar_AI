@@ -36,7 +36,7 @@ def discuter(requete: ChatRequest, request: Request):
 
     lookup = construire_lookup_parfums(request.app.state.parfums)
     parfums_recommandes = [
-        construire_parfum_recommande(r, lookup[(r["nom"], r["marque"])])
+        construire_parfum_recommande(r, *lookup[(r["nom"], r["marque"])])
         for r in resultat["resultats_bruts"]
         if (r["nom"], r["marque"]) in lookup
     ]

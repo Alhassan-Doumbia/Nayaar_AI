@@ -45,7 +45,7 @@ sys.path.insert(0, _DOSSIER_APP)  # pour que "routes" soit importable comme pack
 import layering  # noqa: E402
 import scoring  # noqa: E402
 import semantic_search  # noqa: E402
-from routes import chat, health, layering as layering_route, perfumes, recommend  # noqa: E402
+from routes import chat, health, layering as layering_route, perfumes, recommend, search  # noqa: E402
 
 RACINE_PROJET = os.path.abspath(os.path.join(_DOSSIER_APP, "..", ".."))
 
@@ -130,3 +130,4 @@ app.include_router(perfumes.router)
 app.include_router(recommend.router)
 app.include_router(chat.router)
 app.include_router(layering_route.router)
+app.include_router(search.router)

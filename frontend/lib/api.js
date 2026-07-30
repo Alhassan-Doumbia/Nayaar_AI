@@ -80,3 +80,25 @@ export function envoyerMessageChat(message, sessionId) {
 export function proposerLayering(perfumeId, n = 3) {
   return _poster("/api/layering", { perfume_id: perfumeId, n });
 }
+
+/**
+ * Recherche textuelle simple par nom/marque (GET /api/search), pour
+ * l'autocomplétion de la page layering. Pas de timeout dédié : c'est un
+ * appel léger et fréquent (debounce côté appelant) — en cas d'échec, on
+ * retourne simplement une liste vide plutôt que de casser la saisie de
+ * l'utilisateur avec un message d'erreur intrusif.
+ *
+ * @param {string} texte
+ * @returns {Promise<{id:number, nom:string, marque:string, image_url:string}[]>}
+ */
+export async function rechercherParNom(texte) {
+  try {
+    const url = new URL(`${URL_API}/api/search`);
+    url.searchParams.set("q", texte);
+    const reponse = await fetch(url.toString());
+    if (!reponse.ok) return [];
+    return await reponse.json();
+  } catch {
+    return [];
+  }
+}

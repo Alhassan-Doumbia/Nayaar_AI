@@ -62,6 +62,15 @@ class RecommendResponse(BaseModel):
     perfumes: list[ParfumRecommande]
 
 
+# --- /api/search --------------------------------------------------------------
+class ResultatRecherche(BaseModel):
+    """Une correspondance de recherche textuelle par nom/marque — pensé pour une autocomplétion, donc volontairement minimal."""
+    id: int
+    nom: str
+    marque: str
+    image_url: str
+
+
 # --- /api/perfumes/{id} -----------------------------------------------------
 class ScoresSaison(BaseModel):
     winter: float

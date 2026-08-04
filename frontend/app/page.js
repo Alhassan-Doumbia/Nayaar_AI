@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { Layers } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ChatContainer } from "@/components/ChatContainer";
@@ -50,7 +52,17 @@ export default function Home() {
 
   return (
     <div className="flex h-screen flex-col bg-nayaar-cream">
-      <Header />
+      <Header
+        nav={
+          <Link
+            href="/layering"
+            className="label-caps flex items-center gap-1.5 text-nayaar-ink/70 transition-colors hover:text-nayaar-gold"
+          >
+            <Layers className="h-3.5 w-3.5" />
+            Layering
+          </Link>
+        }
+      />
 
       <main className="flex-1 overflow-hidden">
         <ChatContainer>

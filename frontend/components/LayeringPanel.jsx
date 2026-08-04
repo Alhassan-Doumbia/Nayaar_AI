@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { PerfumeImage } from "@/components/PerfumeImage";
-import { LayeringPerfumeCard } from "@/components/LayeringPerfumeCard";
+import { LayeringResults } from "@/components/LayeringResults";
 import { Loader } from "@/components/ui/loader";
-import { Markdown } from "@/components/ui/markdown";
 import { proposerLayering } from "@/lib/api";
 
 /**
@@ -127,23 +126,7 @@ export function LayeringPanel({ perfumeId, onClose }) {
               )}
 
               {donnees && !chargement && !erreur && (
-                <div className="flex flex-col gap-6">
-                  {/* Propositions : cartes cohérentes avec PerfumeCard/PerfumeGallery,
-                      avec badge de rôle (base/dessus) pour l'ordre d'application */}
-                  <div className="flex flex-col gap-3">
-                    {donnees.perfumes.map((parfum) => (
-                      <LayeringPerfumeCard
-                        key={`${parfum.nom}-${parfum.marque}`}
-                        parfum={parfum}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Guide rédigé par Claude : explication + conseils d'application */}
-                  <Markdown className="prose prose-sm max-w-none text-nayaar-ink prose-headings:font-serif prose-headings:text-nayaar-ink prose-strong:text-nayaar-ink">
-                    {donnees.reply}
-                  </Markdown>
-                </div>
+                <LayeringResults perfumes={donnees.perfumes} reply={donnees.reply} />
               )}
             </div>
           </motion.aside>

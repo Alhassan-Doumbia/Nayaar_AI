@@ -7,13 +7,16 @@ de données externe : toutes les données vivent en fichiers
 notes_vocabulary.json), chargés une seule fois au démarrage (lifespan)
 puis gardés en mémoire pour toutes les requêtes.
 
-Lancer en local (accessible depuis cet ordinateur uniquement) :
-    uvicorn main:app --reload --app-dir backend/app
+Le plus simple, toujours accessible depuis le réseau local (démo sur
+n'importe quel Wi-Fi) — lance uvicorn en interne avec --host 0.0.0.0,
+impossible d'oublier le réglage :
+    python main.py            (depuis backend/app/)
 
-Lancer en incluant l'accès depuis le réseau local (ex. téléphone sur le
-même Wi-Fi, voir CORS_ORIGINS dans backend/.env) — --host 0.0.0.0 fait
-écouter l'API sur toutes les interfaces réseau, pas seulement 127.0.0.1 :
+Équivalent manuel avec rechargement automatique (dev) :
     uvicorn main:app --reload --host 0.0.0.0 --app-dir backend/app
+
+Accessible depuis cet ordinateur uniquement (pas de démo réseau) :
+    uvicorn main:app --reload --app-dir backend/app
 """
 import os
 import sys
@@ -131,3 +134,14 @@ app.include_router(recommend.router)
 app.include_router(chat.router)
 app.include_router(layering_route.router)
 app.include_router(search.router)
+
+
+if __name__ == "__main__":
+    # Lancement direct (`python main.py`) : toujours sur toutes les
+    # interfaces réseau (0.0.0.0), pour ne plus jamais reproduire l'erreur
+    # récurrente "backend en 127.0.0.1 uniquement, injoignable depuis le
+    # réseau" — le port reste configurable via .env si besoin (par défaut 8000).
+    import uvicorn
+
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

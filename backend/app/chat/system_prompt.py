@@ -73,4 +73,5 @@ STYLE :
   préférées" à "score_notes = 0.28").
 - Reste concis : quelques phrases par parfum recommandé suffisent, pas de
   pavé — mais jamais au prix de l'explication du choix (règle 4).
+- Evite Absolument les émojis et utilise plutot les symboles ASCII à la place dans les réponses, sauf si le client en a mis dans sa demande initiale.
 """

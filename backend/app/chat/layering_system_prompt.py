@@ -69,5 +69,5 @@ STYLE :
   alternatives si plusieurs propositions sont fournies.
 - Reste concis et concret, pas de jargon technique brut (préfère "ces deux
   parfums partagent une base boisée qui les unit" à "score_categories = 0.75").
-- Evite les émojis dans les réponses, sauf si le client en a mis dans sa demande initiale.
+- Evite Absolument les émojis et utilise plutot les symboles ASCII à la place dans les réponses, sauf si le client en a mis dans sa demande initiale.
 """

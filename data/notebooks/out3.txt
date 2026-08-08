@@ -1,0 +1,117 @@
+============================== 03c_features_validation.ipynb
+--MD--
+# 03c — Validation qualité du dataset enrichi
+
+Notebook de **contrôle qualité manuel** de `nayaar_knowledge_base.csv`
+(brique "Validation manuelle" du chemin critique, voir `Docs/MVP_SCOPE.md`).
+
+Ce notebook ne corrige rien : il **affiche** et **teste**, pour que tu puisses
+juger à l'œil si l'enrichissement du notebook 03b est correct avant de
+passer aux embeddings.
+
+**Entrée** : `data/processed/nayaar_knowledge_base.csv`
+
+Contenu :
+1. Échantillon lisible de 30 parfums (toutes les features)
+2. Tests de cohérence automatiques
+3. Contrôles ciblés (summer_score le plus haut, winter_score le plus haut, profil)
+4. Taux de remplissage de chaque feature
+5. Visualisations (scores, familles, profils)
+
+La lisibilité de l'affichage est priorisée sur l'élégance du code.
+--CODE head-- ['import json', '', 'import pandas as pd', 'import matplotlib.pyplot as plt', 'import seaborn as sns', '']
+--CODE head-- ['df = pd.read_csv(CHEMIN_KNOWLEDGE_BASE, encoding="utf-8")', 'df["notes_list"] = df["notes_list"].apply(json.loads)', 'df["notes_categories"] = df["notes_categories"].apply(json.loads)', '', '# Colonnes texte courtes pour un affichage lisible en tableau', 'df["notes_texte"] = df["notes_list"].apply(lambda notes: ", ".join(notes))']
+--MD--
+## 1. Échantillon lisible de 30 parfums
+
+Un tirage aléatoire (graine fixe pour reproductibilité), avec **toutes les
+features générées** dans un tableau unique.
+--CODE head-- ['COLONNES_FEATURES = [', '    "Name", "Brand", "notes_texte", "categories_texte", "famille",', '    "winter_score", "spring_score", "summer_score", "autumn_score",', '    "day_score", "night_score", "profil", "concentration",', ']', '']
+--MD--
+## 2. Tests de cohérence automatiques
+
+Chaque test affiche clairement **ce qui est vérifié**, **combien de lignes
+posent problème**, et **des exemples concrets** si problème il y a.
+--CODE head-- ['print("=== TEST 1 : tous les scores sont bien dans l\'intervalle [0, 1] ===\\n")', '', 'colonnes_scores = ["winter_score", "spring_score", "summer_score", "autumn_score", "day_score", "night_score"]', 'scores_hors_bornes = df[(df[colonnes_scores] < 0).any(axis=1) | (df[colonnes_scores] > 1).any(axis=1)]', '', 'print(f"Lignes avec un score hors [0, 1] : {len(scores_hors_bornes)} / {len(df)}")']
+--CODE head-- ['print("=== TEST 2 : parfums sans AUCUNE note reconnue (features \'neutres par défaut\') ===\\n")', 'print("Rappel : quand aucune note du parfum n\'est dans le vocabulaire, le notebook 03b")', 'print("applique un score neutre de 0.5 partout (documenté, pas un 0 silencieux).")', 'print("On détecte donc ces cas en repérant les 6 scores EXACTEMENT égaux à 0.5.\\n")', '', 'masque_neutre = (df[colonnes_scores] == 0.5).all(axis=1)']
+--CODE head-- ['print("=== TEST 3 : familles valides ===\\n")', '', 'FAMILLES_CONNUES = {', '    "agrumes", "floral", "boise", "epice", "oriental_ambre", "aromatique",', '    "fruite", "gourmand", "musque", "vert", "aquatique", "cuir",', '}']
+--CODE head-- ['print("=== TEST 4 : profil valide ===\\n")', '', 'PROFILS_CONNUS = {"masculine", "feminine", "unisex"}', 'profils_presents = set(df["profil"].unique())', 'profils_inattendus = profils_presents - PROFILS_CONNUS', '']
+--CODE head-- ['print("=== TEST 5 : concentration valide ===\\n")', '', 'CONCENTRATIONS_CONNUES = {', '    "Extrait de Parfum", "Eau de Parfum", "Eau de Toilette", "Cologne Absolue",', '    "Eau de Cologne", "Eau Fraiche", "Elixir", "Perfume Oil", "Attar",', '    "Absolu", "Parfum", "Cologne", "",']
+--MD--
+## 3. Contrôles ciblés
+
+On vérifie "à l'œil" que les scores extrêmes correspondent à une intuition
+de parfumerie : les `summer_score` les plus hauts doivent être dominés par
+des notes fraîches/agrumées, les `winter_score` les plus hauts par des notes
+ambrées/boisées.
+--CODE head-- ['print("=== Top 10 summer_score (attendu : dominance agrumes / aromatique / vert) ===\\n")', '', 'top_ete = df.sort_values("summer_score", ascending=False).head(10)', 'top_ete[["Name", "summer_score", "famille", "categories_texte", "notes_texte"]]', '']
+--CODE head-- ['print("=== Top 10 winter_score (attendu : dominance oriental_ambre / boise / cuir / gourmand) ===\\n")', '', 'top_hiver = df.sort_values("winter_score", ascending=False).head(10)', 'top_hiver[["Name", "winter_score", "famille", "categories_texte", "notes_texte"]]', '']
+--CODE head-- ['print("=== Cohérence famille dominante des Top 10 été / hiver ===\\n")', '', 'print("Familles des 10 parfums au summer_score le plus haut :")', 'print(top_ete["famille"].value_counts())', '', 'print("\\nFamilles des 10 parfums au winter_score le plus haut :")']
+--CODE head-- ['print("=== Contrôle ciblé : profil ===\\n")', 'print("Pas de score numérique de profil exporté (seulement la catégorie finale) :")', 'print("on vérifie donc la cohérence par la répartition des familles au sein de chaque profil.")', 'print("Attendu : \'masculine\' plutôt boisé/cuir/épicé, \'feminine\' plutôt floral/fruité, \'unisex\' plus mélangé.\\n")', '', 'for profil in ["masculine", "feminine", "unisex"]:']
+--CODE head-- ['print("=== 5 exemples par profil (à juger à l\'œil) ===\\n")', '', 'for profil in ["masculine", "feminine", "unisex"]:', '    print(f"--- {profil} ---")', '    exemples = df[df["profil"] == profil][["Name", "famille", "categories_texte"]].sample(', '        min(5, (df["profil"] == profil).sum()), random_state=1']
+--MD--
+## 4. Taux de remplissage de chaque feature
+--CODE head-- ['print("=== Taux de remplissage ===\\n")', 'print("Distinction importante : les scores sont TOUJOURS \'remplis\' techniquement")', 'print("(valeur neutre 0.5 par défaut), donc on affiche aussi le taux basé sur")', 'print("au moins une note reconnue, plus honnête sur la vraie qualité du signal.\\n")', '', 'au_moins_une_note = df["notes_list"].apply(len) > 0']
+--MD--
+## 5. Visualisations
+--CODE head-- ['fig, axes = plt.subplots(2, 3, figsize=(14, 7))', 'for ax, colonne in zip(axes.flat, colonnes_scores):', '    sns.histplot(df[colonne], bins=20, ax=ax, color="#7c5c42")', '    ax.set_title(colonne)', 'plt.suptitle("Distribution des 6 scores")', 'plt.tight_layout()']
+--CODE head-- ['fig, ax = plt.subplots(figsize=(9, 5))', 'ordre = df["famille"].replace("", "(aucune)").value_counts().index', 'sns.countplot(y=df["famille"].replace("", "(aucune)"), order=ordre, ax=ax, color="#6b4f7c")', 'ax.set_title("Répartition des parfums par famille dominante")', 'plt.tight_layout()', 'plt.show()']
+--CODE head-- ['fig, ax = plt.subplots(figsize=(6, 4))', 'sns.countplot(x=df["profil"], order=["masculine", "feminine", "unisex"], ax=ax, color="#4a6b5a")', 'ax.set_title("Répartition des parfums par profil")', 'plt.tight_layout()', 'plt.show()', '']
+============================== 04_embeddings.ipynb
+--MD--
+# 04 — Embeddings et index sémantique FAISS
+
+Construit la couche de **recherche sémantique** de Nayaar : chaque parfum
+est encodé en vecteur (embedding) à partir de son `profil_text`, puis
+indexé avec FAISS pour permettre une recherche par similarité de sens
+(ex. "un parfum boisé et chaud pour l'hiver") plutôt que par mot-clé exact.
+
+**Entrée** : `data/processed/nayaar_knowledge_base.csv` (colonne `profil_text`)
+
+**Sorties** :
+- `data/processed/nayaar_index.faiss` — l'index vectoriel
+- `data/processed/nayaar_index_mapping.json` — correspondance position dans
+  l'index → parfum (nom, marque, famille...), nécessaire car FAISS ne stocke
+  que des vecteurs, pas de métadonnées
+
+FAISS tourne **en local** (pas de base vectorielle externe au MVP, voir
+`Docs/MVP_SCOPE.md`). Le modèle d'embeddings est `all-MiniLM-L6-v2`
+(`sentence-transformers`) : léger (~80 Mo), rapide en local, et suffisant
+pour un corpus de ~2000 phrases courtes.
+
+Étapes :
+1. Chargement de la Knowledge Base
+2. Génération des embeddings
+3. Construction et sauvegarde de l'index FAISS + mapping
+4. Vérification qualité : 5 parfums, leurs 5 plus proches voisins, jugement olfactif
+--CODE head-- ['import json', '', 'import numpy as np', 'import pandas as pd', 'import faiss', 'from sentence_transformers import SentenceTransformer']
+--MD--
+## 1. Chargement de la Knowledge Base
+--CODE head-- ['df = pd.read_csv(CHEMIN_KNOWLEDGE_BASE, encoding="utf-8")', '', 'print(f"Parfums chargés : {len(df)}")', 'print(f"\\nExemple de profil_text :\\n{df[\'profil_text\'].iloc[0]}")', '']
+--MD--
+## 2. Génération des embeddings
+
+Chaque `profil_text` (nom, marque, famille, notes, profil, saison/moment
+dominants — construit au notebook 03b) est encodé en un vecteur de 384
+dimensions. On **normalise** les vecteurs (norme L2 = 1) : cela permet
+ensuite d'utiliser une distance euclidienne dans FAISS qui se comporte
+comme une distance cosinus, la métrique standard pour comparer des
+embeddings de texte.
+--CODE head-- ['modele = SentenceTransformer(NOM_MODELE)', '', 'textes = df["profil_text"].tolist()', 'embeddings = modele.encode(', '    textes,', '    show_progress_bar=True,']
+--MD--
+## 3. Construction et sauvegarde de l'index FAISS
+
+`IndexFlatL2` : recherche exacte (pas d'approximation), largement
+suffisante pour ~2000 vecteurs — pas besoin d'un index approximatif (IVF,
+HNSW...) à cette échelle. Le mapping position → parfum est sauvegardé à
+part : FAISS ne connaît que des vecteurs numérotés 0, 1, 2..., pas les noms
+de parfums.
+--CODE head-- ['dimension = embeddings.shape[1]', 'index = faiss.IndexFlatL2(dimension)', 'index.add(embeddings)', '', 'print(f"Vecteurs indexés : {index.ntotal}")', '']
+--MD--
+## 4. Vérification qualité
+
+Pour 5 parfums tirés au hasard, on cherche leurs 5 plus proches voisins
+dans l'index (on exclut le parfum lui-même, distance 0 avec lui-même). Le
+but : juger **à l'œil** si la proximité sémantique correspond à une
+proximité olfactive plausible (familles/notes similaires).
+--CODE head-- ['def trouver_voisins(position_parfum, index, embeddings, mapping, k=5):', '    """', "    Cherche les k plus proches voisins d'un parfum déjà indexé (identifié par", '    sa position). On demande k+1 voisins à FAISS car le parfum lui-même sera', "    toujours son propre plus proche voisin (distance 0), qu'on retire ensuite.", '    """']

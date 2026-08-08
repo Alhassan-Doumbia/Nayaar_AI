@@ -1,0 +1,128 @@
+============================== 03b_feature_engineering.ipynb
+--MD--
+# 03b — Feature Engineering : dataset enrichi Nayaar
+
+Construit la **Nayaar Knowledge Base** à partir de `nayaar_clean.csv` (données)
+et `notes_vocabulary.json` (connaissance métier validée manuellement).
+
+**Entrées** :
+- `data/processed/nayaar_clean.csv`
+- `data/processed/notes_vocabulary.json`
+
+**Sortie** : `data/processed/nayaar_knowledge_base.csv`
+
+Features produites (uniquement celles-ci) :
+
+| Feature | Origine |
+|---|---|
+| `notes_categories` | catégories olfactives présentes, dérivées du vocabulaire |
+| `famille` | catégorie dominante, règles de départage explicites |
+| `winter_score` / `spring_score` / `summer_score` / `autumn_score` | moyenne des scores saisonniers des notes reconnues |
+| `day_score` / `night_score` | moyenne des scores jour/nuit des notes reconnues |
+| `profil` | mots-clés explicites (nom + description) en priorité, sinon moyenne des tendances des notes |
+| `concentration` | regex sur le nom (EDT/EDP/Parfum/Cologne/Attar...), vide si non détecté |
+| `profil_text` | texte enrichi pour les futurs embeddings |
+
+Chaque feature a sa cellule de validation (distribution + 5 exemples concrets),
+et chaque score numérique reste **traçable** : on peut toujours retrouver quelles
+notes ont produit quelle valeur (fonctions d'explication dédiées).
+
+⚠️ **Aucun appel GPT.** Toute la logique est faite de règles explicites,
+conformément à `CLAUDE.md` (l'IA ne décide jamais seule d'une recommandation).
+--CODE head-- ['import json', 'import re', 'from collections import Counter', '', 'import pandas as pd', 'import matplotlib.pyplot as plt']
+--MD--
+## 1. Chargement des données
+--CODE head-- ['df = pd.read_csv(CHEMIN_DATASET_PROPRE, encoding="utf-8")', 'df["notes_list"] = df["notes_list"].apply(json.loads)', '', 'with open(CHEMIN_VOCABULAIRE, encoding="utf-8") as f:', '    vocabulaire = json.load(f)', '']
+--MD--
+## 2. Fonction commune : notes reconnues d'un parfum
+
+Toutes les features de scoring reposent sur la même étape : associer les
+notes brutes d'un parfum aux entrées du vocabulaire (même mapping de
+normalisation que le notebook 03a, réutilisé ici tel quel pour rester
+cohérent). Les notes non présentes dans le vocabulaire (trop rares, ou
+écartées comme bruit lors du 03a) sont ignorées — et on garde une trace de
+combien de notes ont réellement été reconnues, pour pouvoir toujours
+expliquer un score.
+--CODE head-- ['def notes_reconnues(notes_brutes):', '    """', "    Normalise les notes brutes d'un parfum (même mapping que le notebook 03a)", '    et ne garde que celles présentes dans le vocabulaire validé. Retourne une', "    liste de tuples (note_canonique, entree_vocabulaire) — c'est la base de", '    toutes les features de scoring ci-dessous.']
+--MD--
+## 3. `notes_categories` — catégories olfactives présentes
+
+Pour chaque parfum : l'ensemble des catégories olfactives (parmi les 12 du
+vocabulaire) couvertes par ses notes reconnues, triées par nombre de notes
+décroissant.
+--CODE head-- ['def calculer_notes_categories(notes_brutes):', '    """Retourne la liste des catégories olfactives présentes dans le parfum, triée par fréquence."""', '    reconnues = notes_reconnues(notes_brutes)', '    compteur = Counter(entree["categorie"] for _, entree in reconnues)', '    return [categorie for categorie, _ in compteur.most_common()]', '']
+--MD--
+### Validation — `notes_categories`
+--CODE head-- ['# Distribution : combien de catégories différentes par parfum, et fréquence de chaque catégorie', 'nb_categories_par_parfum = df["notes_categories"].apply(len)', '', 'fig, axes = plt.subplots(1, 2, figsize=(13, 4))', 'sns.countplot(x=nb_categories_par_parfum, ax=axes[0], color="#7c5c42")', 'axes[0].set_title("Nombre de catégories olfactives par parfum")']
+--MD--
+## 4. `famille` — famille olfactive dominante
+
+Règle : on compte, parmi les notes reconnues du parfum, combien appartiennent
+à chaque catégorie. La catégorie avec le plus de notes gagne. En cas
+d'égalité, on utilise un ordre de départage explicite : les catégories très
+présentes comme **base commune de la plupart des parfums** (`musque`,
+`boise`) sont volontairement classées en dernier recours, pour que la
+famille dominante reflète ce qui **distingue** le parfum plutôt que son socle
+le plus banal. Les familles plus "caractéristiques" (`oriental_ambre`,
+`cuir`, `gourmand`...) sont prioritaires en cas d'égalité stricte.
+--CODE head-- ["# Ordre de départage en cas d'égalité (du plus prioritaire au moins prioritaire)", 'PRIORITE_DEPARTAGE_FAMILLE = [', '    "oriental_ambre", "cuir", "gourmand", "epice", "aquatique", "fruite",', '    "floral", "vert", "aromatique", "agrumes", "boise", "musque",', ']', '']
+--MD--
+### Validation — `famille`
+--CODE head-- ['fig, ax = plt.subplots(figsize=(9, 5))', 'ordre = df["famille"].value_counts().index', 'sns.countplot(y=df["famille"], order=ordre, ax=ax, color="#6b4f7c")', 'ax.set_title("Répartition des parfums par famille olfactive dominante")', 'plt.tight_layout()', 'plt.show()']
+--MD--
+## 5. Scores saison / moment (`*_score`)
+
+Moyenne arithmétique simple des scores des notes reconnues (pas de
+pondération tête/cœur/fond : cette information n'existe pas dans les
+données source — `notes_list` est une liste plate). Si aucune note n'est
+reconnue, score neutre par défaut **0.5**, documenté explicitement plutôt que
+laissé à `NaN` silencieusement.
+--CODE head-- ['SCORE_NEUTRE_PAR_DEFAUT = 0.5', '', '', 'def calculer_score_moyen(notes_brutes, dimension, cle):', '    """', '    Calcule la moyenne d\'un score (ex. dimension="saisons", cle="winter")']
+--MD--
+### Validation — scores saison / jour-nuit
+--CODE head-- ['colonnes_scores = ["winter_score", "spring_score", "summer_score", "autumn_score", "day_score", "night_score"]', '', 'fig, axes = plt.subplots(2, 3, figsize=(14, 7))', 'for ax, colonne in zip(axes.flat, colonnes_scores):', '    sns.histplot(df[colonne], bins=20, ax=ax, color="#7c5c42")', '    ax.set_title(colonne)']
+--MD--
+## 6. `profil` (masculine / feminine / unisex)
+
+Deux sources de signal, utilisées par ordre de priorité :
+
+1. **Mots-clés explicites** dans le nom + la description (ex. `"masculine"`,
+   `"for women"`, `"pour homme"`, `"unisex"`) — trouvés réellement dans les
+   données lors de l'inspection (151 mentions de "masculine", 116 de
+   "feminine", 84 de "unisex", etc.). Si `"unisex"` est mentionné, il prime
+   sur tout le reste. Sinon, on compare le nombre d'indices masculins vs
+   féminins.
+2. **À défaut de mot-clé**, on retombe sur la moyenne des tendances de
+   profil des notes reconnues (`masculine` / `feminine` / `unisex` du
+   vocabulaire) et on prend le maximum.
+--CODE head-- ['MOTS_CLES_MASCULIN = ["masculine", "for men", "pour homme", " homme", "for him", "men\'s", " men\'"]', 'MOTS_CLES_FEMININ = ["feminine", "for women", "pour femme", " femme", "for her", "women\'s", " women\'"]', 'MOT_CLE_UNISEXE = "unisex"', '', '', 'def detecter_profil_texte(nom, description):']
+--MD--
+### Validation — `profil`
+--CODE head-- ['fig, ax = plt.subplots(figsize=(6, 4))', 'sns.countplot(x=df["profil"], order=["masculine", "feminine", "unisex"], ax=ax, color="#4a6b5a")', 'ax.set_title("Répartition du profil (masculine / feminine / unisex)")', 'plt.tight_layout()', 'plt.show()', '']
+--MD--
+## 7. `concentration`
+
+Extraction par expression régulière sur le **nom** du parfum, motifs réels
+observés dans le dataset (`Eau de Parfum` : 1510 occurrences, `Eau de
+Toilette` : 183, `Extrait de Parfum` : 131, `Perfume Oil` : 87, `Attar` : 14,
+etc.). Les motifs les plus spécifiques sont testés en premier
+(`Extrait de Parfum` avant `Parfum` seul). **Laissée vide si aucun motif ne
+correspond** — pas de valeur devinée.
+--CODE head-- ['# Ordre = du plus spécifique au plus générique (le premier motif qui matche gagne)', 'MOTIFS_CONCENTRATION = [', '    (r"extrait de parfum", "Extrait de Parfum"),', '    (r"eau de parfum", "Eau de Parfum"),', '    (r"eau de toilette", "Eau de Toilette"),', '    (r"cologne absolue", "Cologne Absolue"),']
+--MD--
+### Validation — `concentration`
+--CODE head-- ['fig, ax = plt.subplots(figsize=(8, 5))', 'ordre = df["concentration"].replace("", "(non détecté)").value_counts().index', 'sns.countplot(y=df["concentration"].replace("", "(non détecté)"), order=ordre, ax=ax, color="#7c5c42")', 'ax.set_title("Répartition des concentrations détectées")', 'plt.tight_layout()', 'plt.show()']
+--MD--
+## 8. `profil_text`
+
+Texte enrichi pour les futurs embeddings (notebook 04) : nom, marque,
+famille, notes reconnues et attributs synthétiques, dans une phrase lisible
+en langage naturel (utile aussi bien pour l'embedding que pour une
+relecture humaine rapide).
+--CODE head-- ['def construire_profil_text(ligne):', '    """', '    Concatène les informations structurées du parfum en un texte enrichi,', '    destiné à être vectorisé (embeddings) au notebook suivant.', '    """', '    reconnues = notes_reconnues(ligne["notes_list"])']
+--MD--
+### Validation — `profil_text`
+--CODE head-- ['longueurs = df["profil_text"].str.len()', '', 'fig, ax = plt.subplots(figsize=(8, 4))', 'sns.histplot(longueurs, bins=30, ax=ax, color="#6b4f7c")', 'ax.set_title("Longueur (en caractères) du profil_text")', 'plt.tight_layout()']
+--MD--
+## 9. Export vers `nayaar_knowledge_base.csv`
+--CODE head-- ['COLONNES_A_EXPORTER = [', '    "Name", "Brand", "Description", "Notes", "Image URL",', '    "notes_manquantes", "notes_list", "notes_categories", "famille",', '    "winter_score", "spring_score", "summer_score", "autumn_score",', '    "day_score", "night_score", "profil", "concentration", "profil_text",', ']']

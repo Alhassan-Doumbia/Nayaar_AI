@@ -1,0 +1,86 @@
+============================== 03a_notes_vocabulary.ipynb
+--MD--
+# 03a — Vocabulaire de notes olfactives
+
+Ce notebook construit le **vocabulaire de notes**, socle du futur moteur de
+scoring Nayaar : à partir de `data/processed/nayaar_clean.csv` (colonne
+`notes_list`), il extrait les notes uniques, les normalise, les regroupe en
+12 familles olfactives, et leur attribue des scores métier (saison, moment,
+profil).
+
+**Entrée** : `data/processed/nayaar_clean.csv`
+
+**Sortie** : `data/processed/notes_vocabulary.json` — fichier pensé pour être
+**lu et corrigé à la main** (c'est de la connaissance métier probabiliste,
+pas une vérité mesurée).
+
+⚠️ Rappel `CLAUDE.md` : ces attributs sont produits par une heuristique
+documentée (pas par GPT, pas par devinette silencieuse). Ils doivent être
+validés avant d'entrer dans le moteur de scoring définitif.
+
+Étapes :
+1. Chargement et fréquence brute des notes
+2. Normalisation des variantes d'écriture (mapping explicite)
+3. Catégorisation en 12 familles olfactives
+4. Notes non catégorisées → affichées pour traitement manuel
+5. Attributs métier (saison / moment / profil) — moteur de règles explicite
+6. Export vers `notes_vocabulary.json`
+7. Visualisations : top 30 des notes, répartition par catégorie
+
+--CODE head-- ['import json', 'from collections import Counter', '']
+--MD--
+## 1. Chargement et fréquence brute des notes
+--CODE head-- ['df = pd.read_csv(CHEMIN_DATASET_PROPRE, encoding="utf-8")', '', '']
+--MD--
+## 2. Normalisation des variantes d'écriture
+
+Mapping construit à partir d'une inspection réelle des notes brutes
+(fréquences avant/après, variantes détectées par comparaison singulier/
+pluriel et par recherche de motifs proches). Il couvre :
+
+- des **pluriels** de la même matière (`roses` → `rose`) ;
+- des **fautes/variantes d'orthographe** (`agardwood`, `agaroud`,
+  `agarwoord` → `agarwood` ; `vetyver` → `vetiver`) ;
+- des **artefacts de parsing** issus du notebook 02, quand la colonne
+  `Notes` source contenait du texte libre mal découpé (`"and vanilla"` → `vanilla`) ;
+- des **synonymes évidents** (`orange flower` = `orange blossom` ;
+  `cassis` = `blackcurrant` ; `nagarmotha` = `cypriol`).
+
+⚠️ Les variantes d'**origine géographique** (`bulgarian rose`, `cambodian
+oud`, `sicilian bergamot`...) ne sont **volontairement pas fusionnées** :
+ce sont de vraies nuances métier reconnues en parfumerie, pas des doublons
+de saisie.
+--CODE head-- ['MAPPING_NORMALISATION = {', '    "agar oud": "agarwood", "agar wood": "agarwood", "agardwood": "agarwood",', '    "agaroud": "agarwood", "agarwoord": "agarwood", "agarwood (oud)": "agarwood",']
+--MD--
+## 3. Catégorisation en 12 familles olfactives
+
+Construite à la main à partir de connaissances standard de parfumerie
+(chaque note du vocabulaire est rattachée à une des 12 familles demandées).
+Toute note qui ne figure dans aucune liste ci-dessous tombera dans
+`notes_non_categorisees` (section suivante) — rien n'est catégorisé par
+défaut/au hasard.
+--CODE head-- ['CATEGORIES = {', '    "agrumes": [', '        "lemon", "sicilian lemon", "italian lemon", "grapefruit", "pink grapefruit",']
+--MD--
+## 4. Notes non catégorisées (à traiter manuellement)
+--CODE head-- ['notes_non_categorisees = {', '    note: occ for note, occ in vocabulaire_brut.items()', '    if note not in note_vers_categorie']
+--MD--
+## 5. Attributs métier (saison / moment / profil)
+
+Moteur de règles **explicite et auditable** : une base de scores par
+catégorie olfactive (jugement de parfumerie standard — ex. agrumes = plutôt
+été/jour/unisexe, cuir = plutôt hiver/nuit/masculin), affinée par de légers
+ajustements selon des mots-clés présents dans le nom de la note.
+
+C'est une heuristique, pas une mesure. Chaque note exportée porte
+`"attributs_heuristiques": true` et un niveau de confiance, pour rappeler
+qu'une validation manuelle est nécessaire avant utilisation dans le moteur
+de scoring (règle métier absolue de `CLAUDE.md` : l'IA ne décide jamais
+seule).
+--CODE head-- ['BASE_PAR_CATEGORIE = {', '    # saisons                                    moment                profil', '    "agrumes":        dict(winter=0.3, spring=0.7, summer=0.9, autumn=0.4, day=0.8, night=0.3, masculine=0.5, feminine=0.5, unisex=0.9),']
+--MD--
+## 6. Export vers `notes_vocabulary.json`
+--CODE head-- ['notes_json = {}', 'for note, occurrences in sorted(vocabulaire_brut.items(), key=lambda x: -x[1]):', '    if note not in note_vers_categorie:']
+--MD--
+## 7. Visualisations
+--CODE head-- ['# Top 30 des notes les plus fréquentes (sur le vocabulaire normalisé)', 'top30 = sorted(vocabulaire_brut.items(), key=lambda x: -x[1])[:30]', 'noms = [n for n, _ in top30]']
+--CODE head-- ['# Répartition des notes du vocabulaire par catégorie olfactive', 'repartition = Counter(note_vers_categorie[n] for n in vocabulaire_brut if n in note_vers_categorie)', 'categories_triees = sorted(repartition.items(), key=lambda x: -x[1])']

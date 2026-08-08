@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowUp } from "lucide-react";
 import {
   PromptInput,
@@ -8,6 +8,7 @@ import {
   PromptInputActions,
   PromptInputAction,
 } from "@/components/ui/prompt-input";
+import { useLisereDoreAuFocus } from "@/hooks/useNayaarAnimations";
 
 /**
  * Champ de saisie du chat, basé sur `PromptInput` de Prompt Kit (auto-resize,
@@ -21,6 +22,9 @@ import {
  */
 export function ChatInput({ onSend, disabled = false }) {
   const [valeur, setValeur] = useState("");
+  const [focus, setFocus] = useState(false);
+  const liseréRef = useRef(null);
+  useLisereDoreAuFocus(liseréRef, focus);
 
   const envoyer = () => {
     if (!valeur.trim() || disabled) return;
@@ -34,9 +38,17 @@ export function ChatInput({ onSend, disabled = false }) {
       onValueChange={setValeur}
       onSubmit={envoyer}
       disabled={disabled}
-      className="border-nayaar-gold-soft bg-white focus-within:ring-2 focus-within:ring-nayaar-gold/40"
+      onFocus={() => setFocus(true)}
+      onBlur={() => setFocus(false)}
+      className="relative overflow-hidden rounded-xl border-nayaar-gold-soft bg-white"
     >
-      <PromptInputTextarea placeholder="Décrivez ce que vous recherchez…" />
+      {/* Liseré doré qui se dessine au focus (GSAP), plutôt qu'un ring brutal */}
+      <span
+        ref={liseréRef}
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-nayaar-gold"
+      />
+      <PromptInputTextarea placeholder="Exprimez votre désir olfactif…" />
       <PromptInputActions className="justify-end pt-1">
         <PromptInputAction tooltip="Envoyer">
           <button

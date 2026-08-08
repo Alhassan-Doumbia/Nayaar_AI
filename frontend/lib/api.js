@@ -30,7 +30,7 @@ async function _poster(chemin, corps) {
       );
     }
     throw new Error(
-      "Impossible de contacter l'assistant Nayaar. Vérifiez que l'API est bien lancée en local."
+      "Le réseau semble hésiter — l'assistant Nayaar ne répond pas. Vérifiez que l'API est bien lancée en local."
     );
   } finally {
     clearTimeout(idTimeout);
@@ -48,7 +48,7 @@ async function _poster(chemin, corps) {
       // corps non JSON : on garde le message générique ci-dessous
     }
     throw new Error(
-      detail || `L'assistant a rencontré une erreur (code ${reponse.status}).`
+      detail || `L'assistant n'a pas pu répondre cette fois (code ${reponse.status}).`
     );
   }
 

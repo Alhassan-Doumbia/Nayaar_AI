@@ -66,7 +66,7 @@ export function PerfumeSearchInput({ onSelect }) {
           onFocus={() => resultats.length > 0 && setListeVisible(true)}
           // laisse le temps au clic sur un résultat de se déclencher avant de fermer la liste
           onBlur={() => setTimeout(() => setListeVisible(false), 150)}
-          placeholder="Nom du parfum que vous possédez…"
+          placeholder="Un parfum de votre coffret…"
           className="h-12 rounded-full border-nayaar-gold-soft bg-white pl-10 text-sm focus-visible:border-nayaar-gold focus-visible:ring-nayaar-gold/30"
         />
       </div>

@@ -20,10 +20,15 @@
   --color-nayaar-beige: var(--nayaar-beige);
   --color-nayaar-ink: var(--nayaar-ink);
   --color-nayaar-label: var(--nayaar-label);
+  --color-nayaar-accent-link: var(--nayaar-accent-link);
+  --color-nayaar-assistant-muted: var(--nayaar-assistant-muted);
+  --color-nayaar-assistant-accent: var(--nayaar-assistant-accent);
+  --color-nayaar-on-dark-surface: var(--nayaar-on-dark-surface);
+  --color-nayaar-on-dark-border: var(--nayaar-on-dark-border);
 
   /* Deux familles : serif (logo, titres) / sans (corps, interface) */
-  --font-serif: var(--font-playfair);
-  --font-sans: var(--font-inter);
+  --font-serif: var(--font-lustria);
+  --font-sans: var(--font-mulish);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -68,15 +73,24 @@
 }
 
 :root {
-  /* --- Palette Nayaar (source de vérité des couleurs de la maison) --- */
+  /* --- Palette Nayaar (source de vérité, alignée sur
+     Docs/NAYAAR_DESIGN_DIRECTION.md section 4/8 — ne pas dériver ces
+     valeurs sans mettre à jour la direction graphique en premier) --- */
   --nayaar-cream: #faf7f2; /* fond général */
-  --nayaar-cream-deep: #f2ebdd; /* fond légèrement plus soutenu (footer, cartes) */
-  --nayaar-black: #17140f; /* bulles assistant, noir chaud (pas un noir pur) */
-  --nayaar-gold: #c89b3c; /* accent doré/ambré : logo, scores, focus */
-  --nayaar-gold-soft: #e3c987; /* liseré doré plus doux (bordures, hover) */
-  --nayaar-beige: #ece2cf; /* bulles utilisateur */
-  --nayaar-ink: #2a2620; /* texte principal sur fond clair */
-  --nayaar-label: #a39a89; /* labels petites capitales ("ASSISTANT", "VOUS") */
+  --nayaar-cream-deep: #f3ede4; /* bulles, cartes, zones secondaires */
+  --nayaar-black: #1c1917; /* bulles assistant, brun-noir profond */
+  --nayaar-gold: #a16207; /* doré ambré : bouton d'envoi, chips, liens, focus */
+  --nayaar-gold-soft: #e7e0d6; /* bordures / séparateurs fins (color-border) */
+  --nayaar-beige: #f3ede4; /* bulles utilisateur */
+  --nayaar-ink: #1c1917; /* texte principal sur fond clair */
+  --nayaar-label: #57534e; /* texte secondaire, meta, labels */
+  --nayaar-accent-link: #854d0e; /* liens texte sur fond clair (contraste AA) */
+
+  /* Tokens réservés à l'intérieur de la bulle sombre de l'assistant */
+  --nayaar-assistant-muted: #d9d0c4; /* notes, texte secondaire sur fond sombre */
+  --nayaar-assistant-accent: #e8b96a; /* doré éclairci, lisible sur fond sombre */
+  --nayaar-on-dark-surface: rgba(255, 255, 255, 0.05); /* fiche parfum, dans la bulle */
+  --nayaar-on-dark-border: rgba(245, 240, 232, 0.14);
 
   --background: var(--nayaar-cream);
   --foreground: var(--nayaar-ink);
@@ -93,15 +107,15 @@
   --accent: var(--nayaar-gold-soft);
   --accent-foreground: var(--nayaar-ink);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: #e6dcc6;
-  --input: #e6dcc6;
+  --border: var(--nayaar-gold-soft);
+  --input: #ffffff;
   --ring: var(--nayaar-gold);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -171,5 +185,34 @@
   }
   .scrollbar-hidden::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Texte markdown (réponses de l'assistant) DANS la bulle sombre : on fixe
+     explicitement chaque couleur du plugin Typography sur la palette
+     Nayaar, plutôt que de dépendre de `prose-invert` (gris générique du
+     plugin, et son inversion via variables CSS s'est révélée peu fiable en
+     pratique — texte resté noir sur fond noir). Remplace `prose-invert`
+     dans MessageBubble.jsx. */
+  .prose-nayaar-sombre {
+    --tw-prose-body: #f5f0e8;
+    --tw-prose-headings: #f5f0e8;
+    --tw-prose-lead: #d9d0c4;
+    --tw-prose-links: #e8b96a;
+    --tw-prose-bold: #f5f0e8;
+    --tw-prose-counters: #d9d0c4;
+    --tw-prose-bullets: #d9d0c4;
+    --tw-prose-hr: rgba(245, 240, 232, 0.14);
+    --tw-prose-quotes: #f5f0e8;
+    --tw-prose-quote-borders: rgba(245, 240, 232, 0.14);
+    --tw-prose-captions: #d9d0c4;
+    --tw-prose-code: #f5f0e8;
+    --tw-prose-pre-code: #d9d0c4;
+    --tw-prose-pre-bg: rgba(0, 0, 0, 0.3);
+    --tw-prose-th-borders: rgba(245, 240, 232, 0.14);
+    --tw-prose-td-borders: rgba(245, 240, 232, 0.14);
+    color: #f5f0e8;
+  }
+  .prose-nayaar-sombre :where(*) {
+    color: inherit;
   }
 }

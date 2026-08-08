@@ -7,7 +7,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ChatContainer } from "@/components/ChatContainer";
 import { MessageBubble } from "@/components/MessageBubble";
-import { PerfumeCard } from "@/components/PerfumeCard";
 import { PerfumeGallery } from "@/components/PerfumeGallery";
 import { SuggestionChips } from "@/components/SuggestionChips";
 import { ChatInput } from "@/components/ChatInput";
@@ -68,8 +67,8 @@ export default function Home() {
         <ChatContainer>
           {messages.length === 0 && (
             <p className="mx-auto mt-12 max-w-sm text-center font-serif text-lg text-nayaar-ink/60">
-              Décrivez le parfum que vous recherchez, l&apos;occasion, ou
-              l&apos;émotion que vous souhaitez porter.
+              Votre conseiller olfactif personnel. Confiez-lui une occasion,
+              une émotion, un souvenir — il en fera un parfum.
             </p>
           )}
 
@@ -80,18 +79,13 @@ export default function Home() {
                 contenu={message.contenu}
                 statut={message.statut}
                 onStreamComplete={() => marquerMessageTermine(message.id)}
+                parfumPrincipal={message.perfumes?.[0]}
+                onOpenLayering={setLayeringPerfumeId}
               />
 
-              {/* Le premier parfum se démarque toujours en grande carte
-                  détaillée ; s'il y en a d'autres, ils suivent en petites
-                  vignettes défilantes (alternatives), jamais l'inverse. */}
-              {message.perfumes?.length > 0 && (
-                <PerfumeCard
-                  parfum={message.perfumes[0]}
-                  onOpenLayering={setLayeringPerfumeId}
-                />
-              )}
-
+              {/* Les alternatives (au-delà de la recommandation principale,
+                  déjà affichée dans la bulle) suivent en petites vignettes
+                  défilantes, hors bulle. */}
               {message.perfumes?.length > 1 && (
                 <PerfumeGallery parfums={message.perfumes.slice(1)} />
               )}

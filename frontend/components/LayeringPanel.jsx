@@ -44,7 +44,7 @@ export function LayeringPanel({ perfumeId, onClose }) {
       .catch((erreurAppel) => {
         if (!annule) {
           setErreur(
-            erreurAppel.message || "Une erreur est survenue. Merci de réessayer."
+            erreurAppel.message || "L'accord n'a pas pu se composer. Merci de réessayer."
           );
         }
       })
@@ -96,7 +96,7 @@ export function LayeringPanel({ perfumeId, onClose }) {
                 />
               )}
               <div className="min-w-0 flex-1">
-                <p className="label-caps">Guide de superposition</p>
+                <p className="label-caps">L&apos;accord proposé</p>
                 {donnees && (
                   <p className="truncate font-serif text-sm text-nayaar-ink">
                     {donnees.parfum_reference.nom} — {donnees.parfum_reference.marque}

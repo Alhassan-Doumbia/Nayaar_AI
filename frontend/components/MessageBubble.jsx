@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Message, MessageContent } from "@/components/ui/message";
 import { Loader } from "@/components/ui/loader";
 import { ResponseStream } from "@/components/ui/response-stream";
+import { PerfumeCard } from "@/components/PerfumeCard";
 
 // Réglage de la vitesse de révélation du texte (ResponseStream, mode
 // typewriter). On fixe directement le nombre de caractères révélés par
@@ -22,9 +23,9 @@ const VITESSE_STREAM = {
 // Style de bulle partagé par tous les statuts assistant, pour ne pas le
 // dupliquer entre les branches "loading" / "streaming" / "done" / "error".
 const CLASSE_BULLE_ASSISTANT =
-  "rounded-2xl rounded-tl-sm border-l-2 border-nayaar-gold bg-nayaar-black px-4 py-3 text-sm leading-relaxed text-nayaar-cream";
+  "rounded-lg rounded-tl-sm border-l-2 border-nayaar-gold bg-nayaar-black px-4 py-3 font-sans text-[15px] leading-relaxed text-[#F5F0E8]";
 const CLASSE_BULLE_UTILISATEUR =
-  "rounded-2xl rounded-tr-sm bg-nayaar-beige px-4 py-3 text-sm leading-relaxed text-nayaar-ink";
+  "rounded-lg rounded-tr-sm bg-nayaar-beige px-4 py-3 font-sans text-[15px] leading-relaxed text-nayaar-ink";
 
 /**
  * Bulle de message, basée sur le composant Prompt Kit `Message`, re-stylée
@@ -45,8 +46,19 @@ const CLASSE_BULLE_UTILISATEUR =
  * @param {string} contenu
  * @param {"loading"|"streaming"|"done"|"error"} [statut]
  * @param {() => void} [onStreamComplete] - appelé quand l'animation de streaming se termine
+ * @param {object} [parfumPrincipal] - si fourni (réponse "done" de l'assistant), la fiche
+ *   parfum s'affiche À L'INTÉRIEUR de la bulle sombre, sous le texte (voir
+ *   Docs/NAYAAR_DESIGN_DIRECTION.md section 5 — « c'est là que le luxe se voit le plus »)
+ * @param {(perfumeId: number) => void} [onOpenLayering]
  */
-export function MessageBubble({ role, contenu, statut = "done", onStreamComplete }) {
+export function MessageBubble({
+  role,
+  contenu,
+  statut = "done",
+  onStreamComplete,
+  parfumPrincipal,
+  onOpenLayering,
+}) {
   const estAssistant = role === "assistant";
   const classeBulle = estAssistant ? CLASSE_BULLE_ASSISTANT : CLASSE_BULLE_UTILISATEUR;
 
@@ -67,7 +79,7 @@ export function MessageBubble({ role, contenu, statut = "done", onStreamComplete
             <Loader variant="typing" size="sm" />
           </div>
         ) : statut === "streaming" ? (
-          <div className={`${classeBulle} prose-invert`}>
+          <div className={`${classeBulle} prose-nayaar-sombre`}>
             <ResponseStream
               textStream={contenu}
               mode="typewriter"
@@ -77,16 +89,30 @@ export function MessageBubble({ role, contenu, statut = "done", onStreamComplete
             />
           </div>
         ) : statut === "error" ? (
-          <div className={`${classeBulle} italic text-nayaar-cream/80`}>
+          <div className={`${classeBulle} italic text-[#F5F0E8]/80`}>
             {contenu}
           </div>
         ) : (
-          <MessageContent
-            markdown={estAssistant}
-            className={`${classeBulle} ${estAssistant ? "prose-invert" : ""}`}
-          >
-            {contenu}
-          </MessageContent>
+          <div className={estAssistant && parfumPrincipal ? `${classeBulle} flex flex-col gap-4` : undefined}>
+            <MessageContent
+              markdown={estAssistant}
+              className={
+                estAssistant && parfumPrincipal
+                  ? "bg-transparent p-0 prose-nayaar-sombre"
+                  : `${classeBulle} ${estAssistant ? "prose-nayaar-sombre" : ""}`
+              }
+            >
+              {contenu}
+            </MessageContent>
+
+            {estAssistant && parfumPrincipal && (
+              <PerfumeCard
+                parfum={parfumPrincipal}
+                onOpenLayering={onOpenLayering}
+                variante="sombre"
+              />
+            )}
+          </div>
         )}
       </Message>
     </motion.div>

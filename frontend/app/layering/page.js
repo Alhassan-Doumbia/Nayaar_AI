@@ -57,7 +57,7 @@ export default function PageLayering() {
       });
       setHistorique(listeMiseAJour);
     } catch (erreurAppel) {
-      setErreur(erreurAppel.message || "Une erreur est survenue. Merci de réessayer.");
+      setErreur(erreurAppel.message || "L'accord n'a pas pu se composer. Merci de réessayer.");
     } finally {
       setChargement(false);
     }
@@ -96,12 +96,12 @@ export default function PageLayering() {
         <div className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-4 py-10">
           <div className="text-center">
             <h2 className="font-serif text-2xl text-nayaar-ink">
-              Layering personnalisé
+              L&apos;art de la superposition
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-nayaar-ink/70">
-              Indiquez un parfum que vous possédez déjà : nous vous proposons
-              comment le sublimer en superposition, avec l&apos;ordre
-              d&apos;application et les conseils d&apos;usage.
+              Confiez-nous un parfum de votre coffret : nous composons un
+              accord qui le prolonge, avec l&apos;ordre d&apos;application et
+              les gestes qui le révèlent.
             </p>
           </div>
 
@@ -148,12 +148,12 @@ export default function PageLayering() {
 
           {/* Historique — toujours visible, même sans résultat affiché */}
           <section className="flex flex-col gap-3 border-t border-nayaar-gold-soft/40 pt-6">
-            <h3 className="label-caps">Mes layerings</h3>
+            <h3 className="label-caps">Vos compositions</h3>
 
             {historique.length === 0 ? (
               <p className="text-sm text-nayaar-ink/60">
-                Aucun layering sauvegardé pour l&apos;instant — vos recherches
-                apparaîtront ici.
+                Rien encore — vos accords trouvés se retrouveront ici, prêts
+                à être relus.
               </p>
             ) : (
               <ul className="flex flex-col gap-2">

@@ -1,25 +1,26 @@
-import { Inter, Playfair_Display } from "next/font/google";
+import { Lustria, Mulish } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RegisterServiceWorker } from "@/components/RegisterServiceWorker";
 import "./globals.css";
 
-// Serif élégante pour le logo « NAYAAR. » et les titres.
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+// Serif éditoriale pour le logo « Nayaar », les titres et les noms de
+// parfums — voir Docs/NAYAAR_DESIGN_DIRECTION.md, section 3.
+const lustria = Lustria({
+  variable: "--font-lustria",
   subsets: ["latin"],
-  weight: ["500", "600"],
+  weight: ["400"],
 });
 
-// Sans-serif lisible pour le corps de texte et l'interface.
-const inter = Inter({
-  variable: "--font-inter",
+// Sans-serif pour le corps de texte et l'interface.
+const mulish = Mulish({
+  variable: "--font-mulish",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata = {
   title: "Nayaar — Conseiller Olfactif",
-  description: "L'assistant olfactif intelligent de Maison Nayaar.",
+  description: "Votre conseiller olfactif personnel, Maison Nayaar.",
   // PWA : icône d'app (Android/Chrome) et icône d'accueil iOS (obligatoirement
   // du PNG pour Safari, pas de SVG). Le manifest (app/manifest.js) référence
   // les mêmes fichiers pour l'installation.
@@ -50,7 +51,7 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="fr"
-      className={`${playfair.variable} ${inter.variable} h-full antialiased`}
+      className={`${lustria.variable} ${mulish.variable} h-full antialiased`}
     >
       {/* TooltipProvider requis par les composants Prompt Kit (message, scroll-button...) qui utilisent des tooltips */}
       <body className="min-h-full flex flex-col bg-nayaar-cream text-nayaar-ink font-sans">

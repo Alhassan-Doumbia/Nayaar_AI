@@ -108,7 +108,7 @@ export function useChat() {
                   statut: "error",
                   contenu:
                     erreur.message ||
-                    "Une erreur est survenue. Merci de réessayer dans un instant.",
+                    "Le fil s'est interrompu un instant. Reformulez votre demande.",
                 }
               : m
           )
